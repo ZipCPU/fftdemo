@@ -68,7 +68,7 @@ SIMSOURCES:= vgasim.cpp micnco.cpp
 SIMOBJECTS:= $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(SIMSOURCES)))
 SIMHEADERS:= $(foreach header,$(subst .cpp,.h,$(SIMSOURCES)),$(wildcard $(header)))
 VOBJS   := $(OBJDIR)/verilated.o $(OBJDIR)/verilated_vcd_c.o
-all:	main_tb archive
+all:	main_tb archive hexf
 
 SOURCES := main_tb.cpp vgasim.cpp
 HEADERS := image.h testb.h vgasim.h micnco.h videomode.h image.cpp
@@ -90,9 +90,17 @@ MAINOBJS := $(OBJDIR)/main_tb.o
 main_tb: $(MAINOBJS) $(SIMOBJECTS) $(VOBJS) $(VOBJDR)/Vmain__ALL.a
 	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vmain__ALL.a $(GFXLIBS) -o $@
 
+HEXF := cmem_8.hex cmem_16.hex cmem_32.hex cmem_64.hex cmem_128.hex cmem_256.hex
+HEXF += cmem_512.hex cmem_1024.hex hanning.hex subfildown.hex
+
+hexf:
+	ln -sf ../../rtl/*.hex .
+	ln -sf ../../rtl/fft/*.hex .
+
 .PHONY: clean
 clean:
 	rm -f *.vcd
+	rm -f *.hex
 	rm -f $(PROGRAMS)
 	rm -rf $(OBJDIR)/
 
@@ -131,5 +139,6 @@ tags:	$(SOURCES) $(HEADERS)
 	@echo "Generating tags"
 	@ctags $(SOURCES) $(HEADERS)
 
-
+ifneq ($(MAKECMDGOALS),clean)
 -include $(OBJDIR)/depends.txt
+endif

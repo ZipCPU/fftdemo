@@ -1,10 +1,12 @@
-################################################################################
+###############################################################################
 ##
-## Filename:	rtl/Makefile
+## Filename:	Makefile
 ##
 ## Project:	FFT-DEMO, a verilator-based spectrogram display project
 ##
-## Purpose:	To direct the Verilator build of the VGA simulation sources.
+## Purpose:	This is the master project makefilet exist in bench/cpp.
+##
+## Targets:	The default target, all, builds all subdirectory targets.
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
@@ -34,45 +36,18 @@
 ################################################################################
 ##
 ##
-all:	test
-FBDIR := .
-VDIRFB:= $(FBDIR)/obj_dir
+all: benchcpp
+SUBMAKE := make --no-print-directory -C
 
-.PHONY: main
-test: main
-main: $(VDIRFB)/Vmain__ALL.a
+rtld:
+	$(SUBMAKE) rtl
 
-VOBJ := obj_dir
-SUBMAKE := $(MAKE) --no-print-directory --directory=$(VOBJ) -f
-ifeq ($(VERILATOR_ROOT),)
-VERILATOR := verilator
-else
-VERILATOR := $(VERILATOR_ROOT)/bin/verilator
-endif
-VFLAGS := -Wall -MMD -y fft -y video -y pmic --trace -cc
+benchcpp: rtld
+	$(SUBMAKE) bench/cpp
 
-$(VDIRFB)/Vmain__ALL.a: $(VDIRFB)/Vmain.h
-$(VDIRFB)/Vmain__ALL.a: $(VDIRFB)/Vmain.cpp
-$(VDIRFB)/Vmain__ALL.a: $(VDIRFB)/Vmain.mk
-$(VDIRFB)/Vmain.h: main.v
+formal: rtld
+	$(SUBMAKE) formal
 
-$(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
-	$(VERILATOR) $(VFLAGS) $*.v
-
-$(VDIRFB)/V%__ALL.a: $(VDIRFB)/V%.mk
-	$(SUBMAKE) V$*.mk
-
-.PHONY: clean
 clean:
-	rm -rf $(VDIRFB)/
-
-#
-# Note Verilator's dependency created information, and include it here if we
-# can
-DEPS := $(wildcard $(VDIRFB)/*.d)
-
-ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(DEPS),)
-include $(DEPS)
-endif
-endif
+	$(SUBMAKE) rtl       clean
+	$(SUBMAKE) bench/cpp clean
