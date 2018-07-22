@@ -81,7 +81,7 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	reg	[LW-1:0]	lno;
 	reg	[LW-1:0]	r_height;
 
-	initial	r_height = 10;
+	initial	r_height = 480;
 	always @(posedge i_clk)
 	if ((i_reset)||((i_ce)&&(i_sync)))
 		r_height <= i_height;
@@ -90,8 +90,7 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 // assign	lno_pixel = 200 - lno[9:2];
 
 	initial	fif_addr = 0;
-	initial	r_lw     = 0;
-	initial	r_offset = 0;
+	initial	r_lw     = 4;
 	initial	fif_ce   = 0;
 	initial last_ce  = 0;
 	initial lno      = 0;
@@ -101,7 +100,6 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	begin
 		fif_addr <= i_base;
 		r_lw     <= i_lw;
-		r_offset <= 0;
 		fif_ce   <= 0;
 		last_ce  <= 0;
 		r_offscreen <= 1'b1;
@@ -117,17 +115,6 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		fif_ce <= (i_sync)||(!r_offscreen);
 		fif_addr <= (i_sync) ? (i_base + next_offset[AW+1:2]) : r_addr;
 
-/*
-		if ((i_sync)&&(next_offset[0]))
-			fif_data <= {(4){8'h20}};
-		else if (lno[11:9]==0)
-			fif_data <= {(4){lno[8:1]}};
-		else
-			fif_data <= {(4){i_pixel}};
-		//	fif_data <= {(4){i_pixel}};
-		//	fif_data <= {(4){8'h80}};
-			fif_data <= {(4){lno[8:1]}};
-*/
 		fif_data <= {(4){i_pixel}};
 		case((i_sync)?next_offset[1:0]:r_offset[1:0])
 			2'b00: fif_sel <= 4'b1111;
@@ -156,26 +143,43 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	end else
 		fif_ce <= 1'b0;
 
+
+	wire	[AW+1:0]	offset_plus_one;
+	always @(*)
+		offset_plus_one = r_offset + 1;
+
 	initial	next_offset = 0;
 	always @(posedge i_clk)
 	if (i_reset)
 		next_offset <= 0;
-	else if ((r_offset[1:0]==2'b11)&&(r_offset[AW+1:2] == r_lw-1))
+	else if(((offset_plus_one[1:0]==2'b11)&&(offset_plus_one[AW+1:2] == i_lw-1))
+		||(offset_plus_one[AW+1:2] > i_lw-1))
 		next_offset <= 0;
 	else
 		next_offset <= r_offset + 1;
 
+	initial	r_offset = 0;
 	always @(posedge i_clk)
 	if (i_reset)
 		r_offset <= 0;
 	else if ((i_ce)&&(i_sync))
 		r_offset <= next_offset;
 
+	wire	[AW-1:0]	next_offset_plus_two;
+	always @(*)
+		next_offset_plus_two = next_offset[AW+1:2] + 2;
+	initial	o_offset = 1;
 	always @(posedge i_clk)
 	if (i_reset)
-		o_offset <= 0;
+		o_offset <= 1;
 	else if ((i_ce)&&(i_sync))
-		o_offset <= r_offset[AW+1:2]+2;
+	begin
+		if (((next_offset[1:0]==2'b11)&&(next_offset_plus_two>= i_lw-1))
+			||(next_offset_plus_two >= i_lw))
+			o_offset <= 0;
+		else
+			o_offset <= next_offset_plus_two;
+	end
 
 	wire	fif_wfull, fif_rempty, fif_err;
 
@@ -259,8 +263,24 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	initial	assume(i_reset);
 	always @(*)
 	if (!f_past_valid)
-		assume(i_reset);
+		assume((i_reset)||(!i_ce));
 
+	//////////////////////////////
+	//////////////////////////////
+	always @(posedge i_clk)
+	if ($past(i_ce))
+		assume(!i_ce);
+	always @(*)
+		assume(i_height >= 480);
+	always @(*)
+		assume(i_lw >= 160);
+
+	always @(posedge i_clk)
+	if ((i_ce)&&(i_sync))
+		assume($stable(i_lw));
+
+	//////////////////////////////
+	//////////////////////////////
 	wire	[WB_DEPTH:0]	f_nreqs, f_nacks, f_outstanding;
 
 	fwb_master #( .AW(AW), .DW(DW), .F_MAX_STALL(2), .F_MAX_ACK_DELAY(2),
@@ -271,9 +291,10 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 			f_nreqs, f_nacks, f_outstanding);
 
 	always @(*)
-		assume(i_height == 800);
+		assert(r_height >= 480);
 	always @(*)
-		assert(lno < r_height);
+	if (lno >= r_height)
+		assert(r_offscreen);
 
 	always @(posedge i_clk)
 	if ((f_past_valid)&&(!$past(i_wb_err))&&(o_wb_cyc))
@@ -301,5 +322,34 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	always @(*)
 	if (!fif_rempty)
 		assume(o_wb_sel[0]);
+
+	reg [AW-1:0]	f_base;
+	always @(posedge i_clk)
+	if ((i_ce)&&(i_sync))
+		f_base <= i_base;
+
+	always @(posedge i_clk)
+	if ((f_past_valid)&&(!$past(i_reset)))
+	begin
+		if (($past(i_ce))&&(($past(i_sync))||(!$past(r_offscreen))))
+			assert((fif_ce)&&(last_ce));
+		else if (($past(last_ce))&&($past(i_ce,2)))
+			assert((fif_ce)&&(!last_ce));
+		else
+			assert((!fif_ce)&&(!last_ce));
+
+		if (($past(i_ce))&&($past(i_sync)))
+		begin
+			assert(!r_offscreen);
+			assert(lno == 0);
+			assert(fif_addr == f_base + r_offset[AW+1:2]);
+		end
+	end
+	always @(*)
+	begin
+		assert(r_offset[AW+1:2] < r_lw);
+		//assert(next_offset[AW+1:2] < r_lw);
+		assert(o_offset < r_lw);
+	end
 `endif
 endmodule
