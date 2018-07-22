@@ -145,7 +145,8 @@ module	main(i_clk, i_reset, i_pixclk,
 	`VOUT	wire		raw_sync;
 	`VOUT	wire	[7:0]	raw_pixel;
 
-	logfn logi(i_clk, pre_ce, fft_sync, fft_sample[31:16], fft_sample[15:0],
+	logfn logi(i_clk, i_reset,
+			pre_ce, fft_sync, fft_sample[31:16], fft_sample[15:0],
 			raw_pixel, raw_sync);
 	localparam	LGMEM=21, LGDW=5, AW=LGMEM-2;
 	localparam	FW=13, LW=12;
