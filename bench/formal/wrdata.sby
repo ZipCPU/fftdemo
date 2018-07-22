@@ -1,0 +1,17 @@
+[options]
+mode prove
+depth 24
+
+[engines]
+smtbmc
+
+[script]
+read_verilog -formal wrdata.v
+read_verilog -formal fwb_master.v
+read_verilog -formal sfifo.v
+prep -top wrdata
+
+[files]
+../../rtl/wrdata.v
+../../rtl/sfifo.v
+fwb_master.v
