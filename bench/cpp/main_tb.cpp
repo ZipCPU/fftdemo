@@ -78,6 +78,7 @@ public:
 		//
 		m_done = false;
 
+		TESTB<Vmain>::m_pixclk.set_frequency_hz(m_vga.clocks_per_frame() * 60);
 		Glib::signal_idle().connect(sigc::mem_fun((*this),
 				&TESTBENCH::on_tick));
 	}
@@ -92,65 +93,25 @@ public:
 		m_done = true;
 	}
 
-	void	tick(void) {
-		if (m_done)
-			return;
+	void	sim_clk_tick(void) {
+		m_core->i_adc_miso = m_micnco(m_core->o_adc_sck,
+					m_core->o_adc_csn);
+	}
 
-		/*
-		if ((m_tickcount & ((1<<28)-1))==0) {
-			double	ticks_per_second = m_tickcount;
-			time_t	seconds_passed = time(NULL)-m_start_time;
-			if (seconds_passed != 0) {
-			ticks_per_second /= (double)(time(NULL) - m_start_time);
-			printf(" ********   %.6f TICKS PER SECOND\n", 
-				ticks_per_second);
-			}
-		}
-		*/
-
+	void	sim_pixclk_tick(void) {
 		m_vga((m_core->o_vga_vsync)?0:1, (m_core->o_vga_hsync)?0:1,
 			m_core->o_vga_red,
 			m_core->o_vga_grn,
 			m_core->o_vga_blu);
+	}
 
-		m_core->i_adc_miso = m_micnco(m_core->o_adc_sck,
-					m_core->o_adc_csn);
+
+		
+	void	tick(void) {
+		if (m_done)
+			return;
 
 		TESTB<Vmain>::tick();
-
-		int	ceflag = 0;
-
-		/*
-		if (m_core->adc_ce) {
-			printf("ADC CE ");
-			ceflag = 1;
-		}
-
-		if (m_core->fil_ce) {
-			printf("FIL CE ");
-			ceflag = 1;
-		}
-
-		if (m_core->pre_ce) {
-			printf("PRE CE %03x,%04x,%04x->%08x:%02x",
-				m_core->adc_sample,
-				m_core->fil_sample,
-				m_core->pre_sample, m_core->fft_sample,
-				(m_core->raw_pixel&0x0ff));
-			ceflag = 1;
-
-			if (m_core->pre_frame)
-				printf("FRAME! ");
-		}
-
-		if ((m_core->pre_ce)&&(m_core->fft_sync)) {
-			printf("FFT SYNC ");
-			ceflag = 1;
-		}
-
-		if (ceflag)
-			printf("\n");
-		*/
 	}
 
 	bool	on_tick(void) {
@@ -169,7 +130,7 @@ int	main(int argc, char **argv) {
 	tb = new TESTBENCH();
 	tb->reset();
 
-	// tb->opentrace("fftdemo.vcd");
+	tb->opentrace("fftdemo.vcd");
 	Gtk::Main::run(tb->m_vga);
 
 	exit(0);
