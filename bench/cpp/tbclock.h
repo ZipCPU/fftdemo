@@ -2,16 +2,19 @@
 //
 // Filename: 	tbclock.h
 //
-// Project:	VideoZip, a ZipCPU SoC supporting video functionality
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
-// Purpose:	
+// Purpose:	TBCLOCK is a class originally developed for the VideoZIP project
+//		as a helper class to give Verilator the ability to test across
+//	multiple clock domains.  In particular, it helps the testb.h file
+//	determine when the next clocking event will (should) occur.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2018, Gisselquist Technology, LLC
+// Copyright (C) 2017-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published

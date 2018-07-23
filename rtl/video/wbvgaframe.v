@@ -105,7 +105,7 @@ module	wbvgaframe(i_clk, i_pixclk,
 					i_wb_ack, i_wb_err, i_wb_stall, i_wb_data,
 				cmap_rd, fifo_valid, fifo_word, fifo_err);
 
-	always @(posedge i_clk)
+	always @(posedge i_pixclk)
 	if (vga_newframe)
 	begin
 		cmap_data  <= 0;
@@ -122,7 +122,7 @@ module	wbvgaframe(i_clk, i_pixclk,
 		cmap_fill <= cmap_fill - 1'b1;
 	end
 
-	colormap cmap(i_clk, 3'h4, cmap_data[31:24],
+	colormap cmap(i_pixclk, 3'h4, cmap_data[31:24],
 			pixel[23:16], pixel[15:8], pixel[7:0] );
 
 	// verilator lint_off UNUSED

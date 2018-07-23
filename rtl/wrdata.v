@@ -86,9 +86,6 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	if ((i_reset)||((i_ce)&&(i_sync)))
 		r_height <= i_height;
 
-// wire	[7:0]	lno_pixel
-// assign	lno_pixel = 200 - lno[9:2];
-
 	initial	fif_addr = 0;
 	initial	r_lw     = 4;
 	initial	fif_ce   = 0;
@@ -126,7 +123,7 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 
 		if (i_sync)
 			lno <= 0;
-		else
+		else if (!r_offscreen)
 			lno <= lno + 1'b1;
 		// if ((!i_sync)&&(lno >= r_height))
 			// assert(r_offscreen);

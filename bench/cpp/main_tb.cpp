@@ -130,7 +130,7 @@ int	main(int argc, char **argv) {
 	tb = new TESTBENCH();
 	tb->reset();
 
-	tb->opentrace("fftdemo.vcd");
+	// tb->opentrace("fftdemo.vcd");
 	Gtk::Main::run(tb->m_vga);
 
 	exit(0);

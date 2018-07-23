@@ -2,10 +2,15 @@
 //
 // Filename: 	bench/cpp/testb.h
 //
-// Project:	vgasim, a Verilator based VGA simulator demonstration
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	A wrapper for a common interface to a clocked FPGA core
-//		begin exercised in Verilator.
+//		begin exercised in Verilator.  This particular version of the
+//	interface is designed to work with two separate clocks: a pixel clock
+//	and a master system clock, with the pixel clock running at 100MHz
+//	(10ns), and the pixel clock at ... whatever speed the pixel clock is
+//	running at.  In particular, the pixel clock speed is set and adjusted
+//	elsewhere.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
