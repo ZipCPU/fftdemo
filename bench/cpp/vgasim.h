@@ -171,6 +171,10 @@ public:
 	int	vporch(void) {
 		return m_mode.vporch();
 	}
+
+	int	clocks_per_frame(void) const {
+		return m_mode.pixels_per_frame();
+	}
 };
 
 class	VGAWIN	: public Gtk::Window {
@@ -205,20 +209,24 @@ public:
 		return m_vgasim->raw_height();
 	}
 
-	int	hsync(void) {
+	int	hsync(void) const {
 		return m_vgasim->hsync();
 	}
 
-	int	vsync(void) {
+	int	vsync(void) const {
 		return m_vgasim->vsync();
 	}
 
-	int	hporch(void) {
+	int	hporch(void) const {
 		return m_vgasim->hporch();
 	}
 
-	int	vporch(void) {
+	int	vporch(void) const {
 		return m_vgasim->vporch();
+	}
+
+	int	clocks_per_frame(void) const {
+		return m_vgasim->clocks_per_frame();
 	}
 };
 

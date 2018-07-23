@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	testb.h
+// Filename: 	bench/cpp/testb.h
 //
 // Project:	vgasim, a Verilator based VGA simulator demonstration
 //
@@ -12,7 +12,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017, Gisselquist Technology, LLC
+// Copyright (C) 2017-2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -43,24 +43,35 @@
 #include <stdint.h>
 #include <verilated.h>
 #include <verilated_vcd_c.h>
+#include "tbclock.h"
 
 #define	TBASSERT(TB,A) do { if (!(A)) { (TB).closetrace(); } assert(A); } while(0);
 
 template <class VA>	class TESTB {
 public:
-	VA		*m_core;
+	VA	*m_core;
+	bool		m_changed;
 	VerilatedVcdC*	m_trace;
-	uint64_t	m_tickcount;
+	bool		m_done;
+	unsigned long	m_time_ps;
+	TBCLOCK		m_clk;
+	TBCLOCK		m_pixclk;
 
-	TESTB(void) : m_trace(NULL), m_tickcount(0l) {
+	TESTB(void) {
 		m_core = new VA;
+		m_time_ps  = 0ul;
+		m_trace    = NULL;
+		m_done     = false;
 		Verilated::traceEverOn(true);
 		m_core->i_clk = 0;
 		m_core->i_pixclk = 0;
 		eval(); // Get our initial values set properly.
+		m_clk.init(10000);	//  100.00 MHz
+		m_pixclk.init(6734);	//  148.50 MHz
 	}
 	virtual ~TESTB(void) {
-		closetrace();
+		if (m_trace)
+			m_trace->close();
 		delete m_core;
 		m_core = NULL;
 	}
@@ -70,7 +81,13 @@ public:
 			m_trace = new VerilatedVcdC;
 			m_core->trace(m_trace, 99);
 			m_trace->open(vcdname);
+			m_trace->spTrace()->set_time_resolution("ps");
+			m_trace->spTrace()->set_time_unit("ps");
 		}
+	}
+
+	void	trace(const char *vcdname) {
+		opentrace(vcdname);
 	}
 
 	virtual	void	closetrace(void) {
@@ -86,26 +103,57 @@ public:
 	}
 
 	virtual	void	tick(void) {
-		m_tickcount++;
+		unsigned	mintime = m_clk.time_to_edge();
 
-		// Make sure we have our evaluations straight before the top
-		// of the clock.  This is necessary since some of the 
-		// connection modules may have made changes, for which some
-		// logic depends.  This forces that logic to be recalculated
-		// before the top of the clock.
+		if (m_pixclk.time_to_edge() < mintime)
+			mintime = m_pixclk.time_to_edge();
+
+		assert(mintime > 1);
+
 		eval();
-		if (m_trace) m_trace->dump((uint64_t)(10*m_tickcount-2));
-		m_core->i_clk = 1;
-		m_core->i_pixclk = 1;
-		eval();
-		if (m_trace) m_trace->dump((uint64_t)(10*m_tickcount));
-		m_core->i_clk = 0;
-		m_core->i_pixclk = 0;
+		if (m_trace) m_trace->dump(m_time_ps+1);
+
+		m_core->i_clk = m_clk.advance(mintime);
+		m_core->i_pixclk = m_pixclk.advance(mintime);
+
+		m_time_ps += mintime;
+
 		eval();
 		if (m_trace) {
-			m_trace->dump((uint64_t)(10*m_tickcount+5));
+			m_trace->dump(m_time_ps+1);
 			m_trace->flush();
 		}
+
+		if (m_clk.falling_edge()) {
+			m_changed = true;
+			sim_clk_tick();
+		}
+		if (m_pixclk.falling_edge()) {
+			m_changed = true;
+			sim_pixclk_tick();
+		}
+	}
+
+	virtual	void	sim_clk_tick(void) {
+			// Your test fixture should over-ride this method.
+			// If you change any of the inputs to the design
+			// (i.e. w/in main.v), then set m_changed to true.
+			m_changed = false;
+		}
+	virtual	void	sim_pixclk_tick(void) {
+			// Your test fixture should over-ride this method.
+			// If you change any of the inputs to the design
+			// (i.e. w/in main.v), then set m_changed to true.
+			m_changed = false;
+		}
+	virtual bool	done(void) {
+		if (m_done)
+			return true;
+
+		if (Verilated::gotFinish())
+			m_done = true;
+
+		return m_done;
 	}
 
 	virtual	void	reset(void) {
@@ -114,10 +162,7 @@ public:
 		m_core->i_reset = 0;
 		// printf("RESET\n");
 	}
-
-	unsigned long	tickcount(void) {
-		return m_tickcount;
-	}
 };
 
-#endif
+#endif	// TESTB
+
