@@ -101,8 +101,8 @@ module	main(i_clk, i_reset, i_pixclk,
 			{ adc_ign, adc_ce, adc_sample });
 
 	`VOUT	wire		fil_ce;
-	`VOUT	wire	[11:0]	fil_sample;
-	subfildown #(.IW(12), .OW(12), .TW(12), .NDOWN(23), .LGNTAPS(10),
+	`VOUT	wire	[19:0]	fil_sample;
+	subfildown #(.IW(12), .OW(20), .TW(12), .NDOWN(23), .LGNTAPS(10),
 			.INITIAL_COEFFS("subfildown.hex"))
 		fil(i_clk, i_reset, 1'b0, 12'h0, adc_ce, adc_sample[11:0],
 			fil_ce, fil_sample);
@@ -133,7 +133,7 @@ module	main(i_clk, i_reset, i_pixclk,
 	windowfn #(.IW(12), .OW(12), .TW(12), .LGNFFT(10),
 		.OPT_FIXED_TAPS(1'b1),
 		.INITIAL_COEFFS("hanning.hex")) wndw(i_clk, i_reset,
-			1'b0, 0, fil_ce, fil_sample, alt_ce,
+			1'b0, 0, fil_ce, fil_sample[11:0], alt_ce,
 			pre_frame, pre_ce, pre_sample);	
 
 	`VOUT	wire		fft_sync;
