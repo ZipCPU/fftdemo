@@ -41,6 +41,7 @@
 //
 `default_nettype	none
 //
+`define	HIRESOLUTION
 //
 module	main(i_clk, i_reset, i_pixclk,
 		o_adc_csn, o_adc_sck, i_adc_miso,
@@ -130,11 +131,31 @@ module	main(i_clk, i_reset, i_pixclk,
 
 	`VOUT	wire		pre_frame, pre_ce;
 	`VOUT	wire	[11:0]	pre_sample;	
+`ifdef	HIRESOLUTION
+	localparam	XMPY = 5;
+	wire	[12+XMPY-1:0]	big_sample;
+	hires #(
+		.IW(12), .OW(12+XMPY), .TW(12), .LGNFFT(10), .LGFLEN(3),
+			.OPT_FIXED_TAPS(1'b1),
+		// .INITIAL_COEFFS("f3.txt")
+		.INITIAL_COEFFS("f6.txt")
+		) hiresi(i_clk, i_reset, 1'b0, 0,
+			fil_ce, fil_sample[11:0], alt_ce,
+			pre_frame, pre_ce, big_sample);
+	assign	pre_sample = big_sample[11:0];
+	// verilator lint_off UNUSED
+	wire	[XMPY-1:0]	unused_pre;
+	assign unused_pre = big_sample[12+XMPY-1:12];
+	// verilator lint_on  UNUSED
+`else
+
 	windowfn #(.IW(12), .OW(12), .TW(12), .LGNFFT(10),
 		.OPT_FIXED_TAPS(1'b1),
 		.INITIAL_COEFFS("hanning.hex")) wndw(i_clk, i_reset,
 			1'b0, 0, fil_ce, fil_sample[11:0], alt_ce,
 			pre_frame, pre_ce, pre_sample);	
+
+`endif
 
 	`VOUT	wire		fft_sync;
 	`VOUT	wire	[31:0]	fft_sample;

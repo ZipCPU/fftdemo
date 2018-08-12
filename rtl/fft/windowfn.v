@@ -203,7 +203,6 @@ module	windowfn(i_clk, i_reset, i_tap_wr, i_tap,
 		didx <= 0;
 	else if ((i_alt_ce)&&(dwidx[LGNFFT-2:0]==0))
 	begin
-assert(&didx[LGNFFT-2:0]);
 		didx[LGNFFT-2:0] <= 0;
 		didx[LGNFFT-1] <= dwidx[LGNFFT-1];
 	end else if ((i_ce)||(i_alt_ce))
@@ -218,7 +217,6 @@ assert(&didx[LGNFFT-2:0]);
 	begin
 		// // At the beginning of processing for a given FFT
 		tidx <= 0;
-assert(&tidx);
 	end else if ((i_ce)||(i_alt_ce))
 		// Process the next point in the window function
 		tidx <= tidx + 1'b1;
