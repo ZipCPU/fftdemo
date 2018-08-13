@@ -41,7 +41,7 @@
 //
 `default_nettype	none
 //
-`define	HIRESOLUTION
+// `define	HIRESOLUTION
 //
 module	main(i_clk, i_reset, i_pixclk,
 		o_adc_csn, o_adc_sck, i_adc_miso,
