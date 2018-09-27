@@ -97,8 +97,8 @@ module	windowfn(i_clk, i_reset, i_tap_wr, i_tap,
 	input	wire	[(IW-1):0]	i_sample;
 	input	wire			i_alt_ce;
 	//
-	output	wire			o_frame, o_ce;
-	output	wire	[(OW-1):0]	o_sample;
+	output	reg			o_frame, o_ce;
+	output	reg	[(OW-1):0]	o_sample;
 
 
 	reg	[(TW-1):0]	cmem	[0:(1<<LGNFFT)-1];
@@ -203,7 +203,6 @@ module	windowfn(i_clk, i_reset, i_tap_wr, i_tap,
 		didx <= 0;
 	else if ((i_alt_ce)&&(dwidx[LGNFFT-2:0]==0))
 	begin
-assert(&didx[LGNFFT-2:0]);
 		didx[LGNFFT-2:0] <= 0;
 		didx[LGNFFT-1] <= dwidx[LGNFFT-1];
 	end else if ((i_ce)||(i_alt_ce))
@@ -218,7 +217,6 @@ assert(&didx[LGNFFT-2:0]);
 	begin
 		// // At the beginning of processing for a given FFT
 		tidx <= 0;
-assert(&tidx);
 	end else if ((i_ce)||(i_alt_ce))
 		// Process the next point in the window function
 		tidx <= tidx + 1'b1;

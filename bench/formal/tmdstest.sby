@@ -1,0 +1,17 @@
+[options]
+mode prove
+depth 32
+
+[engines]
+smtbmc
+
+[script]
+read -formal tmdstest.v
+read -formal tmdsencode.v
+read -formal tmdsdecode.v
+prep -top tmdstest
+
+[files]
+tmdstest.v
+../../rtl/tmdsencode.v
+../../rtl/tmdsdecode.v

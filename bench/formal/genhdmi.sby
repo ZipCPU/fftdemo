@@ -1,0 +1,14 @@
+[options]
+mode prove
+
+[engines]
+smtbmc
+
+[script]
+read -formal tmdsencode.v
+read -formal genhdmi.v
+prep -top genhdmi
+
+[files]
+../../rtl/tmdsencode.v
+../../rtl/genhdmi.v

@@ -52,9 +52,9 @@
 module	bimpy(i_clk, i_ce, i_a, i_b, o_r);
 	parameter	BW=18, // Number of bits in i_b
 			LUTB=2; // Number of bits in i_a for our LUT multiply
-	input				i_clk, i_ce;
-	input		[(LUTB-1):0]	i_a;
-	input		[(BW-1):0]	i_b;
+	input	wire			i_clk, i_ce;
+	input	wire	[(LUTB-1):0]	i_a;
+	input	wire	[(BW-1):0]	i_b;
 	output	reg	[(BW+LUTB-1):0]	o_r;
 
 	wire	[(BW+LUTB-2):0]	w_r;

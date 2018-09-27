@@ -1,11 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	colormap.v
+// Filename:	simwin.h
 //
-// Project:	FFT-DEMO, a verilator-based spectrogram display project
+// Project:	vgasim, a Verilator based VGA simulator demonstration
 //
-// Purpose:	Convert an 8-bit single-color B/W pixel input into 3 8-bit
-//		color components with a false-color map applied.
+// Purpose:	
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
@@ -36,36 +35,54 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-`default_nettype	none
-//
-module	colormap(i_clk, i_map, i_pixel, o_r, o_g, o_b);
-	input	wire		i_clk;
-	input	wire	[2:0]	i_map;
-	input	wire	[7:0]	i_pixel;
-	output	reg	[7:0]	o_r, o_g, o_b;
+#ifndef	SIMWIN_H
+#define	SIMWIN_H
 
-	wire	[7:0]	bw_r, bw_g, bw_b,
-			md_r, md_g, md_b,
-			mr_r, mr_g, mr_b,
-			ln_r, ln_g, ln_b,
-			gt_r, gt_g, gt_b;
+#include <gtkmm.h>
+#include "image.h"
+#include "videomode.h"
 
-	bwmap  bwmapi(i_pixel,  bw_r, bw_g, bw_b);
-	midmap midmapi(i_pixel, md_r, md_g, md_b);
-	mmrmap mmrmapi(i_pixel, mr_r, mr_g, mr_b);
-	linmap linmap(i_pixel,  ln_r, ln_g, ln_b);
-	gtmap  gtmap(i_pixel,   gt_r, gt_g, gt_b);
+class	SIMWIN	: public Gtk::Window {
+protected:
+	VIDEOMODE	m_vmode;
 
-	always @(posedge i_clk)
-	if (i_map == 3'h0)
-		{ o_r, o_g, o_b } <= { bw_r, bw_g, bw_b };
-	else if (i_map == 3'h1)
-		{ o_r, o_g, o_b } <= { md_r, md_g, md_b };
-	else if (i_map == 3'h2)
-		{ o_r, o_g, o_b } <= { mr_r, mr_g, mr_b };
-	else if (i_map == 3'h3)
-		{ o_r, o_g, o_b } <= { ln_r, ln_g, ln_b };
-	else // if (i_map == 3)
-		{ o_r, o_g, o_b } <= { gt_r, gt_g, gt_b };
+public:
+	SIMWIN(void) : m_vmode(640,480) {};
+	SIMWIN(const int w, const int h) : m_vmode(640,480) {};
+	SIMWIN(const char *h, const char *v) : m_vmode(h,v) {};
 
-endmodule
+	virtual	bool syncd(void)  const= 0;
+
+	int  width(void)  const {
+		return m_vmode.width();
+	}
+
+	int  height(void) const {
+		return	m_vmode.height();
+	}
+
+	int  raw_width(void)  const {
+		return m_vmode.raw_width();
+	}
+
+	int  raw_height(void) const {
+		return m_vmode.raw_height();
+	}
+	int  hsync(void)  const {
+		return	m_vmode.hsync();
+	}
+	int  vsync(void)  const {
+		return	m_vmode.vsync();
+	}
+	int hporch(void)  const {
+		return	m_vmode.hporch();
+	}
+	int vporch(void)  const {
+		return	m_vmode.vporch();
+	}
+	int clocks_per_frame(void) const {
+		return	m_vmode.pixels_per_frame();
+	}
+};
+
+#endif

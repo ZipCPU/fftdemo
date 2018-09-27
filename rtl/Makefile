@@ -40,7 +40,7 @@ VDIRFB:= $(FBDIR)/obj_dir
 
 .PHONY: main
 test: main
-main: $(VDIRFB)/Vmain__ALL.a
+main: $(VDIRFB)/Vmain__ALL.a $(VDIRFB)/Vhdmimain__ALL.a
 
 VOBJ := obj_dir
 SUBMAKE := $(MAKE) --no-print-directory --directory=$(VOBJ) -f
@@ -55,6 +55,11 @@ $(VDIRFB)/Vmain__ALL.a: $(VDIRFB)/Vmain.h
 $(VDIRFB)/Vmain__ALL.a: $(VDIRFB)/Vmain.cpp
 $(VDIRFB)/Vmain__ALL.a: $(VDIRFB)/Vmain.mk
 $(VDIRFB)/Vmain.h: main.v
+
+$(VDIRFB)/Vhdmimain__ALL.a: $(VDIRFB)/Vhdmimain.h
+$(VDIRFB)/Vhdmimain__ALL.a: $(VDIRFB)/Vhdmimain.cpp
+$(VDIRFB)/Vhdmimain__ALL.a: $(VDIRFB)/Vhdmimain.mk
+$(VDIRFB)/Vhdmimain.h: hdmimain.v main.v
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 	$(VERILATOR) $(VFLAGS) $*.v

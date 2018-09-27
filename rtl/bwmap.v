@@ -23,14 +23,9 @@ module	bwmap(i_pixel, o_r, o_g, o_b);
 	reg	[7:0]	gtbl	[0:255];
 	reg	[7:0]	btbl	[0:255];
 
-	always @(*)
-		o_r = rtbl[i_pixel];
-
-	always @(*)
-		o_g = gtbl[i_pixel];
-
-	always @(*)
-		o_b = btbl[i_pixel];
+	assign	o_r = rtbl[i_pixel];
+	assign	o_g = gtbl[i_pixel];
+	assign	o_b = btbl[i_pixel];
 
 	// Now define the tables themselves
 	initial begin

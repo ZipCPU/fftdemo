@@ -70,8 +70,8 @@
 module	qtrstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	parameter	IWIDTH=16, OWIDTH=IWIDTH+1;
 	parameter	LGWIDTH=8, INVERSE=0,SHIFT=0;
-	input					i_clk, i_reset, i_ce, i_sync;
-	input		[(2*IWIDTH-1):0]	i_data;
+	input	wire				i_clk, i_reset, i_ce, i_sync;
+	input	wire	[(2*IWIDTH-1):0]	i_data;
 	output	reg	[(2*OWIDTH-1):0]	o_data;
 	output	reg				o_sync;
 	

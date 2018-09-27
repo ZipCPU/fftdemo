@@ -71,7 +71,7 @@ module	imgfifo(i_clk, i_pixclk,
 	// Now for the interface to the reader on the other end
 	input	wire			i_rd;
 	output	wire			o_valid;
-	output	reg	[(BUSW-1):0]	o_word;
+	output	wire	[(BUSW-1):0]	o_word;
 	output	wire			o_err;
 
 	reg	last_ack, last_stb;

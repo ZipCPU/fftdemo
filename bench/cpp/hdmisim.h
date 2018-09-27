@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	vgasim.h
+// Filename:	hdmisim.h
 //
 // Project:	vgasim, a Verilator based VGA simulator demonstration
 //
@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017, Gisselquist Technology, LLC
+// Copyright (C) 2018, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -35,15 +35,23 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-#ifndef	VGASIM_H
-#define	VGASIM_H
+#ifndef	HDMISIM_H
+#define	HDMISIM_H
 
 #include <gtkmm.h>
 #include "image.h"
 #include "videomode.h"
 #include "simwin.h"
 
-class	VGASIM : public Gtk::DrawingArea {
+#define	VIDEO_GUARD	0
+#define	VIDEO_DATA	1
+#define	CTL_PERIOD	2
+#define	DATA_GUARD	3
+#define	DATA_ISLAND	4
+#define	HDMI_LOST	5
+
+
+class	HDMISIM : public Gtk::DrawingArea {
 public:
 	// Type definitions ... just to make using these types easier and
 	// simpler on the fingers.
@@ -57,11 +65,12 @@ public:
 	CAIROGC			m_gc;
 	IMAGE<unsigned>		*m_data;
 	VIDEOMODE		m_mode;
-	int	m_vsync_count, m_hsync_count;
 	bool	m_out_of_sync;
 
 	int	m_last_vsync, m_last_hsync, m_last_r, m_last_g, m_last_b,
 		m_pixel_clock_count;
+	int	m_state, m_state_counter;
+	int	m_vsync_count, m_hsync_count;
 
 	void	initialize(void) {
 		m_data = new IMAGE<unsigned>(m_mode.height(), m_mode.width());
@@ -73,21 +82,34 @@ public:
 		set_has_window(true);
 		Widget::set_can_focus(false);
 		set_size_request(m_mode.width(), m_mode.height());
+
+		m_state = CTL_PERIOD;
+		m_state_counter = 0;
+
+		m_out_of_sync = true;
 	}
 
 public:
 	static	const	int	CLOCKS_PER_PIXEL,
 				BITS_PER_COLOR;
 
-	VGASIM(void) : Gtk::DrawingArea(), m_mode(640,480) {
+	static	int	bitreverse(int val);
+	static	bool	isguard(int val);
+	static	int	ctldata(int val);
+	static	int	pktdata(int val);
+	static	int	pixeldata(int val);
+
+
+
+	HDMISIM(void) : Gtk::DrawingArea(), m_mode(640,480) {
 		initialize();
 	}
 
-	VGASIM(const int w, const int h) : Gtk::DrawingArea(), m_mode(w, h) {
+	HDMISIM(const int w, const int h) : Gtk::DrawingArea(), m_mode(w, h) {
 		initialize();
 	}
 
-	VGASIM(const char *h, const char *v) : Gtk::DrawingArea(), m_mode(h,v) {
+	HDMISIM(const char *h, const char *v) : Gtk::DrawingArea(), m_mode(h,v) {
 		initialize();
 	}
 
@@ -96,102 +118,27 @@ public:
 	void	get_preferred_height_for_width_vfunc(int w, int &min, int &nw) const;
 	void	get_preferred_width_for_height_vfunc(int w, int &min, int &nw) const;
 
-#ifdef	UNNECESSARY
-	virtual	void	on_show() {
-		if (m_debug)
-			printf("SHOW\n");
-		Gtk::DrawingArea::on_show();
-		printf("SHOWN\n");
-	}
-
-	virtual	void	on_hide() {
-		if (m_debug)
-			printf("HIDE\n");
-		Gtk::DrawingArea::on_hide();
-	}
-
-	virtual	void	on_map(void) {
-		if (m_debug)
-			printf("ON-MAP\n");
-		Gtk::Widget::on_map();
-	}
-
-	virtual	void	on_my_map(void) {
-		printf("ON-MY-MAP\n");
-	}
-
-	virtual	void	signal_map(void) {
-		if (m_debug)
-			printf("SIGNAL-MAP\n");
-		Gtk::DrawingArea::signal_map();
-	}
-
-	virtual	bool	on_configure_event(GdkEventConfigure *ev) {
-		if (m_debug)
-			printf("ON-CONFIGURE\n");
-		return Gtk::DrawingArea::on_configure_event(ev);
-	}
-#endif
-
 	virtual	void	on_realize();
 
-	void	operator()(const int vsync, const int hsync,
-			const int r, const int g, const int b);
+	void	operator()(const int blu, const int grn, const int red);
 	virtual	bool	on_draw(CONTEXT &gc);
-	bool	syncd(void) const { return !m_out_of_sync; }
-
-
-	int	width(void) {
-		return m_mode.width();
-	}
-
-	int	height(void) {
-		return m_mode.height();
-	}
-
-	int	raw_width(void) {
-		return m_mode.raw_width();
-	}
-
-	int	raw_height(void) {
-		return m_mode.raw_height();
-	}
-
-	int	hsync(void) {
-		return m_mode.hsync();
-	}
-
-	int	vsync(void) {
-		return m_mode.vsync();
-	}
-
-	int	hporch(void) {
-		return m_mode.hporch();
-	}
-
-	int	vporch(void) {
-		return m_mode.vporch();
-	}
-
-	int	clocks_per_frame(void) const {
-		return m_mode.pixels_per_frame();
-	}
+	bool	syncd(void) { return !m_out_of_sync; }
 };
 
-class	VGAWIN	: public SIMWIN {
+class	HDMIWIN	: public SIMWIN {
 private:
-	VGASIM	*m_vgasim;
 
 	void	init(void);
 public:
-	VGAWIN(void);
-	VGAWIN(const int w, const int h);
-	VGAWIN(const char *h, const char *v);
-	~VGAWIN(void) { delete m_vgasim; }
-	void	operator()(const int vsync, const int hsync, const int r, const int g, const int b) {
-		(*m_vgasim)(vsync, hsync, r, g, b);
+	HDMISIM	*m_hdmisim;
+	HDMIWIN(void);
+	HDMIWIN(const int w, const int h);
+	HDMIWIN(const char *h, const char *v);
+	~HDMIWIN(void) { delete m_hdmisim; }
+	void	operator()(const int blu, const int grn, const int red) {
+		(*m_hdmisim)(blu,grn,red);
 	}
-	bool	syncd(void) const { return m_vgasim->syncd(); }
+	bool	syncd(void) const { return m_hdmisim->syncd(); }
 };
 
 #endif

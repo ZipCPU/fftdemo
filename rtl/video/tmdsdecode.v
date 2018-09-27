@@ -35,13 +35,14 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
-module	tmdsdecode(i_clk, i_word, o_pv, o_pix, o_sync);
-	input	wire	i_clk;
+`default_nettype	none
+//
+module	tmdsdecode(i_clk, i_word, o_ctl, o_aux, o_pix);
+	input	wire		i_clk;
 	input	wire	[9:0]	i_word;
-	output	wire		o_pv;
-	output	wire	[13:0]	o_pix;
-	output	wire	[1:0]	o_sync;
-
+	output	wire	[1:0]	o_ctl;
+	output	wire	[3:0]	o_aux;
+	output	wire	[7:0]	o_pix;
 
 	reg	[7:0]	r_pix;
 	wire	[9:0]	first_midp;
@@ -52,7 +53,16 @@ module	tmdsdecode(i_clk, i_word, o_pv, o_pix, o_sync);
 	begin
 		if (first_midp[1])
 		begin
-			r_pix[0] <= !(first_midp[9]);
+			r_pix[0] <= (first_midp[9]);
+			r_pix[1] <= (first_midp[8] ^ first_midp[9]);
+			r_pix[2] <= (first_midp[7] ^ first_midp[8]);
+			r_pix[3] <= (first_midp[6] ^ first_midp[7]);
+			r_pix[4] <= (first_midp[5] ^ first_midp[6]);
+			r_pix[5] <= (first_midp[4] ^ first_midp[5]);
+			r_pix[6] <= (first_midp[3] ^ first_midp[4]);
+			r_pix[7] <= (first_midp[2] ^ first_midp[3]);
+		end else begin
+			r_pix[0] <=  first_midp[9];
 			r_pix[1] <= !(first_midp[8] ^ first_midp[9]);
 			r_pix[2] <= !(first_midp[7] ^ first_midp[8]);
 			r_pix[3] <= !(first_midp[6] ^ first_midp[7]);
@@ -60,15 +70,6 @@ module	tmdsdecode(i_clk, i_word, o_pv, o_pix, o_sync);
 			r_pix[5] <= !(first_midp[4] ^ first_midp[5]);
 			r_pix[6] <= !(first_midp[3] ^ first_midp[4]);
 			r_pix[7] <= !(first_midp[2] ^ first_midp[3]);
-		end else begin
-			r_pix[0] <= first_midp[9];
-			r_pix[1] <= first_midp[8] ^ first_midp[9];
-			r_pix[2] <= first_midp[7] ^ first_midp[8];
-			r_pix[3] <= first_midp[6] ^ first_midp[7];
-			r_pix[4] <= first_midp[5] ^ first_midp[6];
-			r_pix[5] <= first_midp[4] ^ first_midp[5];
-			r_pix[6] <= first_midp[3] ^ first_midp[4];
-			r_pix[7] <= first_midp[2] ^ first_midp[3];
 		end
 	end
 
@@ -78,50 +79,47 @@ module	tmdsdecode(i_clk, i_word, o_pv, o_pix, o_sync);
 		assign brev_word[k] = i_word[9-k];
 	endgenerate
 
-	reg		r_pv;
-	reg	[5:0]	apix;
-	reg	[1:0]	r_sync;
+	reg	[5:0]	r_aux;
+	reg	[1:0]	r_ctl;
 	always @(posedge i_clk)
 	begin
-		r_pv   <= 1'b0;
-		apix   <= 6'h0;
-		r_sync <= 2'b00;
+		r_aux   <= 6'h0;
+		r_ctl <= 2'b00;
 		//
 		case(brev_word)
 		// 2-bit control period coding
-		10'h354: begin apix <= 6'h00; r_sync <= 2'h0; end
-		10'h0ab: begin apix <= 6'h01; r_sync <= 2'h1; end
-		10'h154: begin apix <= 6'h02; r_sync <= 2'h2; end
-		10'h2ab: begin apix <= 6'h03; r_sync <= 2'h3; end
+		10'h354: begin r_aux <= 6'h00; r_ctl <= 2'h0; end
+		10'h0ab: begin r_aux <= 6'h01; r_ctl <= 2'h1; end
+		10'h154: begin r_aux <= 6'h02; r_ctl <= 2'h2; end
+		10'h2ab: begin r_aux <= 6'h03; r_ctl <= 2'h3; end
 		// TERC4 coding
-		10'h29c: begin apix <= 6'h10; r_sync <= 2'h0; end
-		10'h263: begin apix <= 6'h11; r_sync <= 2'h1; end
-		10'h2e4: begin apix <= 6'h12; r_sync <= 2'h2; end
-		10'h2e2: begin apix <= 6'h13; r_sync <= 2'h3; end
-		10'h171: begin apix <= 6'h14; r_sync <= 2'h0; end
-		10'h11e: begin apix <= 6'h15; r_sync <= 2'h1; end
-		10'h18e: begin apix <= 6'h16; r_sync <= 2'h2; end
-		10'h13c: begin apix <= 6'h17; r_sync <= 2'h3; end
+		10'h29c: begin r_aux <= 6'h10; r_ctl <= 2'h0; end
+		10'h263: begin r_aux <= 6'h11; r_ctl <= 2'h1; end
+		10'h2e4: begin r_aux <= 6'h12; r_ctl <= 2'h2; end
+		10'h2e2: begin r_aux <= 6'h13; r_ctl <= 2'h3; end
+		10'h171: begin r_aux <= 6'h14; r_ctl <= 2'h0; end
+		10'h11e: begin r_aux <= 6'h15; r_ctl <= 2'h1; end
+		10'h18e: begin r_aux <= 6'h16; r_ctl <= 2'h2; end
+		10'h13c: begin r_aux <= 6'h17; r_ctl <= 2'h3; end
 		// This next pixel is also a guard pixel
-		10'h2cc: begin apix <= 6'h38; r_sync <= 2'h0; end
+		10'h2cc: begin r_aux <= 6'h38; r_ctl <= 2'h0; end
 		//
-		10'h139: begin apix <= 6'h19; r_sync <= 2'h1; end
-		10'h19c: begin apix <= 6'h1a; r_sync <= 2'h2; end
-		10'h2c6: begin apix <= 6'h1b; r_sync <= 2'h3; end
-		10'h28e: begin apix <= 6'h1c; r_sync <= 2'h0; end
-		10'h271: begin apix <= 6'h1d; r_sync <= 2'h1; end
-		10'h163: begin apix <= 6'h1e; r_sync <= 2'h2; end
-		10'h2c3: begin apix <= 6'h1f; r_sync <= 2'h3; end
+		10'h139: begin r_aux <= 6'h19; r_ctl <= 2'h1; end
+		10'h19c: begin r_aux <= 6'h1a; r_ctl <= 2'h2; end
+		10'h2c6: begin r_aux <= 6'h1b; r_ctl <= 2'h3; end
+		10'h28e: begin r_aux <= 6'h1c; r_ctl <= 2'h0; end
+		10'h271: begin r_aux <= 6'h1d; r_ctl <= 2'h1; end
+		10'h163: begin r_aux <= 6'h1e; r_ctl <= 2'h2; end
+		10'h2c3: begin r_aux <= 6'h1f; r_ctl <= 2'h3; end
 		// Guard band characters
-		//10'h2cc:apix<= 8'h38; // done above
-		10'h133: begin apix <= 6'h21; r_sync <= 2'h0; end
-		default: r_pv <= 1'b1;
+		//10'h2cc:r_aux<= 8'h38; // done above
+		10'h133: begin r_aux <= 6'h21; r_ctl <= 2'h0; end
 		endcase
 	end
 
-	assign	o_pv   = r_pv;
-	assign	o_pix  = { apix, r_pix };
-	assign	o_sync = r_sync;
+	assign	o_ctl  = r_ctl;
+	assign	o_aux  = r_aux;
+	assign	o_pix  = r_pix;
 
 	// Make verilator happy
 	// verilator lint_off UNUSED

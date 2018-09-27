@@ -58,9 +58,9 @@ module	longbimpy(i_clk, i_ce, i_a_unsorted, i_b_unsorted, o_r);
 			IW=(AW+1)&(-2),	// Internal width of A
 			LUTB=2,	// How many bits we can multiply by at once
 			TLEN=(AW+(LUTB-1))/LUTB; // Nmbr of rows in our tableau
-	input				i_clk, i_ce;
-	input		[(IAW-1):0]	i_a_unsorted;
-	input		[(IBW-1):0]	i_b_unsorted;
+	input	wire			i_clk, i_ce;
+	input	wire	[(IAW-1):0]	i_a_unsorted;
+	input	wire	[(IBW-1):0]	i_b_unsorted;
 	output	reg	[(AW+BW-1):0]	o_r;
 
 	//

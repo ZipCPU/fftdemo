@@ -64,11 +64,11 @@ FLAGS	:= -Wall -Og -g $(VDEFS)
 GFXFLAGS:= $(GFXFLAGS) `pkg-config gtkmm-3.0 --cflags`
 GFXLIBS := `pkg-config gtkmm-3.0 --libs`
 CFLAGS  :=  $(GFXFLAGS)
-SIMSOURCES:= vgasim.cpp micnco.cpp
+SIMSOURCES:= vgasim.cpp micnco.cpp hdmisim.cpp
 SIMOBJECTS:= $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(SIMSOURCES)))
 SIMHEADERS:= $(foreach header,$(subst .cpp,.h,$(SIMSOURCES)),$(wildcard $(header)))
 VOBJS   := $(OBJDIR)/verilated.o $(OBJDIR)/verilated_vcd_c.o
-all:	main_tb archive hexf
+all:	main_tb hdmimain_tb archive hexf
 
 SOURCES := main_tb.cpp vgasim.cpp
 HEADERS := image.h testb.h vgasim.h micnco.h videomode.h image.cpp
@@ -77,10 +77,20 @@ PROGRAMS := main_tb
 # Now the return to the "all" target, and fill in some details
 all:	$(PROGRAMS)
 
+.PHONY: main_tb.o hdmimain_tb.o vgasim.o hdmisim.o micnco.o
+main_tb.o:	$(OBJDIR)/main_tb.o
+hdmimain_tb.o:	$(OBJDIR)/hdmimain_tb.o
+hdmisim.o:	$(OBJDIR)/hdmisim_tb.o
+micnco.o:	$(OBJDIR)/micnco.o
+
 %.o: $(OBJDIR)/%.o
 $(OBJDIR)/%.o: %.cpp
 	$(mk-objdir)
 	$(CXX) $(CFLAGS) $(INCS) -c $< -o $@
+
+$(OBJDIR)/hdmimain_tb.o: main_tb.cpp $(SIMSOURCES) $(SIMHEADERS) $(VOBJDR)/Vhdmimain.h
+	$(mk-objdir)
+	$(CXX) -DHDMI $(CFLAGS) $(INCS) -c $< -o $(OBJDIR)/hdmimain_tb.o
 
 $(OBJDIR)/%.o: $(VINCD)/%.cpp
 	$(mk-objdir)
@@ -89,6 +99,10 @@ $(OBJDIR)/%.o: $(VINCD)/%.cpp
 MAINOBJS := $(OBJDIR)/main_tb.o
 main_tb: $(MAINOBJS) $(SIMOBJECTS) $(VOBJS) $(VOBJDR)/Vmain__ALL.a
 	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vmain__ALL.a $(GFXLIBS) -o $@
+
+HDMIOBJS := $(OBJDIR)/hdmimain_tb.o
+hdmimain_tb: $(HDMIOBJS) $(SIMOBJECTS) $(VOBJS) $(VOBJDR)/Vhdmimain__ALL.a
+	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vhdmimain__ALL.a $(GFXLIBS) -o $@
 
 HEXF := cmem_8.hex cmem_16.hex cmem_32.hex cmem_64.hex cmem_128.hex cmem_256.hex
 HEXF += cmem_512.hex cmem_1024.hex hanning.hex subfildown.hex

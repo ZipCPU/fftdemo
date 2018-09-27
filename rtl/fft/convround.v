@@ -45,8 +45,8 @@
 //
 module	convround(i_clk, i_ce, i_val, o_val);
 	parameter	IWID=16, OWID=8, SHIFT=0;
-	input					i_clk, i_ce;
-	input		signed	[(IWID-1):0]	i_val;
+	input	wire				i_clk, i_ce;
+	input	wire	signed	[(IWID-1):0]	i_val;
 	output	reg	signed	[(OWID-1):0]	o_val;
 
 	// Let's deal with three cases to be as general as we can be here

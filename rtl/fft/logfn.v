@@ -46,8 +46,8 @@ module	logfn(i_clk, i_reset, i_ce, i_sync, i_real, i_imag, o_sample, o_sync);
 	//
 	input	wire			i_clk, i_reset, i_ce, i_sync;
 	input	wire	signed [IW-1:0]	i_real, i_imag;
-	output	wire	[OW-1:0]	o_sample;
-	output	wire			o_sync;
+	output	reg	[OW-1:0]	o_sample;
+	output	reg			o_sync;
 	//
 	reg	signed [2*IW-1:0] rp, ip;
 

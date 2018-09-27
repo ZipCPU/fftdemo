@@ -42,8 +42,8 @@
 //
 module	laststage(i_clk, i_reset, i_ce, i_sync, i_val, o_val, o_sync);
 	parameter	IWIDTH=16,OWIDTH=IWIDTH+1, SHIFT=0;
-	input					i_clk, i_reset, i_ce, i_sync;
-	input		[(2*IWIDTH-1):0]	i_val;
+	input	wire				i_clk, i_reset, i_ce, i_sync;
+	input	wire	[(2*IWIDTH-1):0]	i_val;
 	output	wire	[(2*OWIDTH-1):0]	o_val;
 	output	reg				o_sync;
 

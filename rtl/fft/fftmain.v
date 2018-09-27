@@ -73,9 +73,9 @@ module fftmain(i_clk, i_reset, i_ce,
 		i_sample, o_result, o_sync);
 	parameter	IWIDTH=12, OWIDTH=16, LGWIDTH=10;
 	//
-	input					i_clk, i_reset, i_ce;
+	input	wire				i_clk, i_reset, i_ce;
 	//
-	input		[(2*IWIDTH-1):0]	i_sample;
+	input	wire	[(2*IWIDTH-1):0]	i_sample;
 	output	reg	[(2*OWIDTH-1):0]	o_result;
 	output	reg				o_sync;
 

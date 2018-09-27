@@ -61,7 +61,7 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	input	wire	[AW-1:0]	i_base, i_lw;
 	input	wire	[LW-1:0]	i_height;
 	//
-	output	wire	[AW-1:0]	o_offset;
+	output	reg	[AW-1:0]	o_offset;
 	//
 	output	reg			o_wb_cyc;
 	output	wire			o_wb_stb, o_wb_we;
@@ -141,7 +141,7 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		fif_ce <= 1'b0;
 
 
-	wire	[AW+1:0]	offset_plus_one;
+	reg	[AW+1:0]	offset_plus_one;
 	always @(*)
 		offset_plus_one = r_offset + 1;
 
@@ -162,7 +162,7 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	else if ((i_ce)&&(i_sync))
 		r_offset <= next_offset;
 
-	wire	[AW-1:0]	next_offset_plus_two;
+	reg	[AW-1:0]	next_offset_plus_two;
 	always @(*)
 		next_offset_plus_two = next_offset[AW+1:2] + 2;
 	initial	o_offset = 1;

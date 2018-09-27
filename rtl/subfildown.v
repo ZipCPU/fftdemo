@@ -61,7 +61,7 @@ module	subfildown(i_clk, i_reset, i_wr_tap, i_tap,
 	input	wire		i_ce;
 	input	wire [(IW-1):0]	i_sample;
 	//
-	output	wire		o_ce;
+	output	reg		o_ce;
 	output	reg [(OW-1):0]	o_result;
 
 
@@ -191,7 +191,7 @@ module	subfildown(i_clk, i_reset, i_wr_tap, i_tap,
 
 	generate if (OW == AW-SHIFT)
 	begin
-		assign	rounded_result = accumulator[AW-SHIFT-1:AW-SHIFT-OW];;
+		assign	rounded_result = accumulator[AW-SHIFT-1:AW-SHIFT-OW];
 	end else if (AW-SHIFT > OW)
 	begin
 		wire	[AW-1:0]	prerounded = {accumulator[AW-SHIFT-1:0],

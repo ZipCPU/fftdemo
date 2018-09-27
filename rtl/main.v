@@ -44,39 +44,49 @@
 //
 module	main(i_clk, i_reset, i_pixclk,
 		o_adc_csn, o_adc_sck, i_adc_miso,
-`ifdef	VERILATOR
-`define	VOUT	output
-	adc_ce, adc_sample,
-	fil_ce, fil_sample,
-	pre_frame, pre_ce, pre_sample,
-	fft_sync, fft_sample,
-	raw_sync, raw_pixel,
-	mem_wr, dat_addr, dat_pix, dat_sel,
-`else
 `define	VOUT
+`ifdef	HDMI
+		o_hdmi_red, o_hdmi_grn, o_hdmi_blu
+`else
+		o_vga_vsync, o_vga_hsync, o_vga_red, o_vga_grn, o_vga_blu
 `endif
-		o_vga_vsync, o_vga_hsync, o_vga_red, o_vga_grn, o_vga_blu);
+		, hsync, vsync, state, state_counter, vguard, dguard, vpre, dpre, s, hsync_count
+		);
 	input	wire		i_clk, i_reset, i_pixclk;
 	output	wire		o_adc_csn, o_adc_sck;
 	input	wire		i_adc_miso;
+`ifdef	HDMI
+	output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu;
+`else
 	output	wire		o_vga_vsync, o_vga_hsync;
 	output	wire	[7:0]	o_vga_red, o_vga_grn, o_vga_blu;
+`endif
+
+	// Verilator lint_off UNUSED
+	(* keep *)	input	wire		hsync, vsync;
+	(* keep *)	input	wire		vguard, dguard;
+	(* keep *)	input	wire		vpre, dpre;
+	(* keep *)	input	wire	[4:0]	s;
+	(* keep *)	input	wire	[3:0]	state;
+	(* keep *)	input	wire	[19:0]	state_counter;
+	(* keep *)	input	wire	[19:0]	hsync_count;
+	// Verilator lint_on  UNUSED
 
 	//
 	//
-	wire				dat_cyc, dat_stb, vga_cyc, vga_stb,
+	wire				dat_cyc, dat_stb, video_cyc, video_stb,
 					mem_cyc, mem_stb,
 					dat_we, mem_we;
-		wire	[AW-1:0]	vga_addr, mem_addr;
+		wire	[AW-1:0]	video_addr, mem_addr;
 	//
 	`VOUT	wire	[AW-1:0]	dat_addr;
 	`VOUT	wire	[31:0]		dat_pix;
 	`VOUT	wire	[3:0]		dat_sel;
 	//
 	wire	[31:0]		mem_in, mem_data;
-	wire			dat_stall, vga_stall, mem_stall,
-				dat_ack, vga_ack, mem_ack,
-				dat_err, vga_err, mem_err;
+	wire			dat_stall, video_stall, mem_stall,
+				dat_ack, video_ack, mem_ack,
+				dat_err, video_err, mem_err;
 	wire	[3:0]		mem_sel;
 
 
@@ -108,8 +118,8 @@ module	main(i_clk, i_reset, i_pixclk,
 			fil_ce, fil_sample);
 
 
-	wire		alt_ce;
-	wire	[4:0]	alt_countdown;
+	reg		alt_ce;
+	reg	[4:0]	alt_countdown;
 
 	initial	alt_countdown = 0;
 	always @(posedge i_clk)
@@ -167,17 +177,11 @@ module	main(i_clk, i_reset, i_pixclk,
 			dat_cyc, dat_stb, dat_we, dat_addr, dat_pix, dat_sel,
 				dat_ack, dat_stall, dat_err);
 	
-`ifdef VERILATOR
-	`VOUT	wire	mem_wr;
-	assign	mem_wr = (dat_stb)&&(!dat_stall);
-	// assign	mem_wr = pre_ce && raw_sync;
-`endif
-
 	wbpriarbiter #(.AW(AW)) arb(i_clk,
 		dat_cyc, dat_stb, dat_we, dat_addr, dat_pix, dat_sel,
 			dat_ack, dat_stall, dat_err,
-		vga_cyc, vga_stb, 1'b0, vga_addr, dat_pix, dat_sel,
-			vga_ack, vga_stall, vga_err,
+		video_cyc, video_stb, 1'b0, video_addr, dat_pix, dat_sel,
+			video_ack, video_stall, video_err,
 		mem_cyc, mem_stb, mem_we, mem_addr,mem_in, mem_sel,
 			mem_ack, mem_stall, mem_err);
 
@@ -186,24 +190,37 @@ module	main(i_clk, i_reset, i_pixclk,
 				mem_ack, mem_stall, mem_data);
 	assign	mem_err = 1'b0;
 
-	wire	vga_refresh;
+	wire	video_refresh;
 
 	wire	[AW-1:0]	read_offset;
 	assign	read_offset = baseoffset; // LINEWORDS - baseoffset;
+`ifdef	HDMI
+	hdmiframe #(.ADDRESS_WIDTH(AW), .FW(FW), .LW(LW)
+		) hdmii(i_clk, i_pixclk, i_reset, 1'b1,
+		BASEADDR + read_offset, LINEWORDS[FW:0],
+		HWIDTH,  HPORCH, HSYNC, HRAW,	// Horizontal mode
+		LHEIGHT, LPORCH, LSYNC, LRAW,	// Vertical mode
+		// Wishbone
+		video_cyc, video_stb, video_addr,
+			video_ack, video_err, video_stall, mem_data,
+		o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
+		video_refresh);
+`else
 	wbvgaframe #(.ADDRESS_WIDTH(AW), .FW(FW), .LW(LW)
 		) vgai(i_clk, i_pixclk, i_reset, 1'b1,
 		BASEADDR + read_offset, LINEWORDS[FW:0],
 		HWIDTH,  HPORCH, HSYNC, HRAW,	// Horizontal mode
 		LHEIGHT, LPORCH, LSYNC, LRAW,	// Vertical mode
 		// Wishbone
-		vga_cyc, vga_stb, vga_addr,
-			vga_ack, vga_err, vga_stall, mem_data,
+		video_cyc, video_stb, video_addr,
+			video_ack, video_err, video_stall, mem_data,
 		o_vga_vsync, o_vga_hsync, o_vga_red, o_vga_grn, o_vga_blu,
-		vga_refresh);
+		video_refresh);
+`endif
 
 	// Make Verilator happy
 	// verilator lint_off UNUSED
-	wire	[2:0]	unused;
-	assign	unused = { pre_frame, adc_ign, vga_refresh };
+	wire	[10:0]	unused;
+	assign	unused = { fil_sample[19:12], pre_frame, adc_ign, video_refresh };
 	// verilator lint_on  UNUSED		
 endmodule

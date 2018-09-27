@@ -20,7 +20,7 @@
 //
 module	mmrmap(i_pixel, o_r, o_g, o_b);
 	input	wire	[7:0]	i_pixel;
-	output	wire	[7:0]	o_r, o_g, o_b;
+	output	reg	[7:0]	o_r, o_g, o_b;
 
 	reg	[7:0]	rtbl	[0:255];
 	reg	[7:0]	gtbl	[0:255];

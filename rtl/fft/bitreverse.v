@@ -43,9 +43,9 @@
 //
 module	bitreverse(i_clk, i_reset, i_ce, i_in, o_out, o_sync);
 	parameter			LGSIZE=5, WIDTH=24;
-	input				i_clk, i_reset, i_ce;
-	input		[(2*WIDTH-1):0]	i_in;
-	output	wire	[(2*WIDTH-1):0]	o_out;
+	input	wire			i_clk, i_reset, i_ce;
+	input	wire	[(2*WIDTH-1):0]	i_in;
+	output	reg	[(2*WIDTH-1):0]	o_out;
 	output	reg			o_sync;
 	reg	[(LGSIZE):0]	wraddr;
 	wire	[(LGSIZE):0]	rdaddr;
@@ -53,9 +53,11 @@ module	bitreverse(i_clk, i_reset, i_ce, i_in, o_out, o_sync);
 	reg	[(2*WIDTH-1):0]	brmem	[0:((1<<(LGSIZE+1))-1)];
 
 	genvar	k;
-	generate for(k=0; k<LGSIZE; k=k+1)
+	generate begin : RDADDR
+	for(k=0; k<LGSIZE; k=k+1)
+	begin : DBL
 		assign rdaddr[k] = wraddr[LGSIZE-1-k];
-	endgenerate
+	end end endgenerate
 	assign	rdaddr[LGSIZE] = !wraddr[LGSIZE];
 
 	reg	in_reset;

@@ -55,9 +55,9 @@
 //
 module	shiftaddmpy(i_clk, i_ce, i_a, i_b, o_r);
 	parameter	AWIDTH=16,BWIDTH=20;
-	input					i_clk, i_ce;
-	input		[(AWIDTH-1):0]		i_a;
-	input		[(BWIDTH-1):0]		i_b;
+	input	wire				i_clk, i_ce;
+	input	wire	[(AWIDTH-1):0]		i_a;
+	input	wire	[(BWIDTH-1):0]		i_b;
 	output	reg	[(AWIDTH+BWIDTH-1):0]	o_r;
 
 	reg	[(AWIDTH-1):0]	u_a;

@@ -67,11 +67,11 @@ module atxfifo(i_wclk, i_wrst_n, i_wr, i_wdata, o_wfull, o_wfill_level,
 			AW = ASIZE;
 	input	wire			i_wclk, i_wrst_n, i_wr;
 	input	wire	[DW-1:0]	i_wdata;
-	output	wire			o_wfull;
-	output	wire	[AW:0]		o_wfill_level;
+	output	reg			o_wfull;
+	output	reg	[AW:0]		o_wfill_level;
 	input	wire			i_rclk, i_rrst_n, i_rd;
 	output	wire	[DW-1:0]	o_rdata;
-	output	wire			o_rempty;
+	output	reg			o_rempty;
 
 	wire	[AW-1:0]	waddr, raddr;
 	wire			wfull_next, rempty_next;
@@ -138,7 +138,7 @@ module atxfifo(i_wclk, i_wrst_n, i_wr, i_wdata, o_wfull, o_wfill_level,
 	//
 	// We'll allow this to be a clock or two out of date, allowing the
 	// feeding circuit to set a threshold to stop with.
-	wire	[AW:0]	wq2_rbin;
+	reg	[AW:0]	wq2_rbin;
 	integer	g2b;
 	always @(*)
 	begin

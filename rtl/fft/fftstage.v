@@ -85,8 +85,8 @@ module	fftstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	localparam [0:0] ZERO_ON_IDLE = 1'b0;
 `endif // VERILATOR
 
-	input					i_clk, i_reset, i_ce, i_sync;
-	input		[(2*IWIDTH-1):0]	i_data;
+	input	wire				i_clk, i_reset, i_ce, i_sync;
+	input	wire	[(2*IWIDTH-1):0]	i_data;
 	output	reg	[(2*OWIDTH-1):0]	o_data;
 	output	reg				o_sync;
 

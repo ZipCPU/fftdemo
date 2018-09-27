@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	./toplevel.v
+// Filename:	./rtl/toplevel.v
 //
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
@@ -57,13 +57,11 @@ module	toplevel(i_clk,
 		ddr3_dqs_p, ddr3_dqs_n,
 		ddr3_dq,
 		i_cpu_resetn,
+		//
 		// HDMI output clock
 		o_hdmi_out_clk_n, o_hdmi_out_clk_p,
 		// HDMI output pixels
 		o_hdmi_out_p, o_hdmi_out_n,
-		// HDMI input clock, and then data
-		i_hdmi_in_clk_n, i_hdmi_in_clk_p,
-		i_hdmi_in_p, i_hdmi_in_n,
 		// The PMic3 microphone wires
 		o_mic_csn, o_mic_sck, i_mic_din);
 	//
@@ -106,19 +104,18 @@ module	toplevel(i_clk,
 	wire	sdram_cyc, sdram_stb, sdram_we,
 		sdram_ack, sdram_stall, sdram_err;
 	wire	[(25-1):0]	sdram_addr;
-	wire	[(128-1):0]	sdram_data,
-					sdram_idata;
-	wire	[(128/8-1):0]	sdram_sel;
+	wire	[(32-1):0]	sdram_data,
+				sdram_idata;
+	wire	[(32/8-1):0]	sdram_sel;
 
 	wire	s_clk, s_reset;
 
-	wire		w_hdmi_out_hsclk, w_hdmi_out_logic_clk;
+	wire		w_hdmi_out_hsclk; // w_hdmi_out_logic_clk;
 	wire	[9:0]	w_hdmi_out_r, w_hdmi_out_g, w_hdmi_out_b;
 	// Definitions for the clock generation circuit
 	//
 	wire	s_clk_200mhz, s_clk_200mhz_unbuffered,
 		sysclk_locked, sysclk_feedback;
-	wire		w_hdmi_in_pll_locked;
 	//
 	wire		w_hdmi_out_en;
 	wire		w_hdmi_bypass_sda;
@@ -141,14 +138,13 @@ module	toplevel(i_clk,
 	// exists), or @MAIN.PORTLIST if it does not.
 	//
 
-	main	thedesign(s_clk, s_reset,
+	hdmiddr	thedesign(s_clk, s_reset, s_pixclk,
 		// The SDRAM interface to an toplevel AXI4 module
 		//
 		sdram_cyc, sdram_stb, sdram_we,
 			sdram_addr, sdram_data, sdram_sel,
-			sdram_ack, sdram_stall, sdram_idata,
+			sdram_ack, sdram_stall, sdram_idata, sdram_err,
 		// HDMI output ports
-		w_hdmi_out_logic_clk,
 		// 10-bit HDMI output pixels, set within the main module
 		w_hdmi_out_r, w_hdmi_out_g, w_hdmi_out_b,
 		// The PMic3 microphone wires
@@ -156,18 +152,14 @@ module	toplevel(i_clk,
 
 
 	//
-	// Our final section to the toplevel is used to provide all of
-	// that special logic that couldnt fit in main.  This logic is
-	// given by the @TOP.INSERT tag in our data files.
+	//	DDR3 SDRAM
 	//
-
-
 	wire	[31:0]	sdram_debug;
 	wire	i_clk_buffered;
 
 	BUFG sdramclkbufi(.I(i_clk), .O(i_clk_buffered));
 
-	migsdram #(.AXIDWIDTH(5), .WBDATAWIDTH(128),
+	migsdram #(.AXIDWIDTH(5), .WBDATAWIDTH(32),
 			.DDRWIDTH(16),
 			.RAMABITS(29)) sdrami(
 		.i_clk(i_clk_buffered),
@@ -236,6 +228,5 @@ module	toplevel(i_clk,
 	BUFG	sysbuf(.I(s_clk_200mhz_unbuffered),.O(s_clk_200mhz));
 	BUFG	pixbuf(.I(s_pixclk_unbuffered),    .O(s_pixclk));
 	BUFG	pix10x(.I(s_pixclkx10_unbuffered), .O(s_pixclkx10));
-
 
 endmodule // end of toplevel.v module definition
