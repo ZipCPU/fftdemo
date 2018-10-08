@@ -50,10 +50,15 @@
 
 #include "verilated.h"
 #include "verilated_vcd_c.h"
+#ifdef	HDMI
+#include "Vhdmimain.h"
+#else
 #include "Vmain.h"
+#endif
 
 #include "testb.h"
 // #include "twoc.h"
+#include "hdmisim.h"
 #include "vgasim.h"
 #include "micnco.h"
 
@@ -65,20 +70,32 @@
 
 
 // No particular "parameters" need definition or redefinition here.
-class	TESTBENCH : public TESTB<Vmain> {
+#ifdef	HDMI
+#define	BASE	Vhdmimain
+#else
+#define	BASE	Vmain
+#endif
+
+class	TESTBENCH : public TESTB<BASE> {
 public:
 	unsigned long	m_tx_busy_count;
+#ifdef	HDMI
+	HDMIWIN		m_hdmi;
+#define	m_win	m_hdmi
+#else
 	VGAWIN		m_vga;
+#define	m_win	m_vga
+#endif
 	MICNCO		m_micnco;
 	bool		m_done;
 
-	TESTBENCH(void) : m_vga(800, 600) {
+	TESTBENCH(void) : m_win(800, 600) {
 		//
 		m_core->i_reset = 1;
 		//
 		m_done = false;
 
-		TESTB<Vmain>::m_pixclk.set_frequency_hz(m_vga.clocks_per_frame() * 60);
+		TESTB<BASE>::m_pixclk.set_frequency_hz(m_win.clocks_per_frame() * 60);
 		Glib::signal_idle().connect(sigc::mem_fun((*this),
 				&TESTBENCH::on_tick));
 	}
@@ -99,10 +116,15 @@ public:
 	}
 
 	void	sim_pixclk_tick(void) {
+#ifdef	HDMI
+		m_hdmi( m_core->o_hdmi_blu, m_core->o_hdmi_grn,
+			m_core->o_hdmi_red);
+#else
 		m_vga((m_core->o_vga_vsync)?0:1, (m_core->o_vga_hsync)?0:1,
 			m_core->o_vga_red,
 			m_core->o_vga_grn,
 			m_core->o_vga_blu);
+#endif
 	}
 
 
@@ -111,7 +133,7 @@ public:
 		if (m_done)
 			return;
 
-		TESTB<Vmain>::tick();
+		TESTB<BASE>::tick();
 	}
 
 	bool	on_tick(void) {
@@ -131,7 +153,7 @@ int	main(int argc, char **argv) {
 	tb->reset();
 
 	// tb->opentrace("fftdemo.vcd");
-	Gtk::Main::run(tb->m_vga);
+	Gtk::Main::run(tb->m_win);
 
 	exit(0);
 }
