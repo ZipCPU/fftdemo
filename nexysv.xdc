@@ -306,9 +306,9 @@ set_property -dict { PACKAGE_PIN AB6   IOSTANDARD LVCMOS33 } [get_ports { o_mic_
 #set_property -dict { PACKAGE_PIN F13   IOSTANDARD LVCMOS12 } [get_ports { fmc_la_p[33] }]; #IO_L1P_T0_16 Sch=fmc_la_p[33]
 
 
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *mem_reg*}]    -to [get_cells -hier -filter {NAME =~ *pixel_reg*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*mem_reg*}]    -to [get_cells -hier -filter {NAME =~ *pixel_reg*}] 10.0;
 
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *mem_reg*}]    -to [get_cells -hier -filter {NAME =~ *cmap_data*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*mem_reg*}]    -to [get_cells -hier -filter {NAME =~ *hdmii*cmap_data*}] 10.0;
 
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 set_property BITSTREAM.CONFIG.CONFIGRATE 50 [current_design]

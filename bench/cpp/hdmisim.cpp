@@ -50,6 +50,7 @@
 #include "hdmisim.h"
 #include "image.cpp"
 
+int	gbl_nframes = 0;
 const	int	HDMISIM::CLOCKS_PER_PIXEL = 1,
 		HDMISIM::BITS_PER_COLOR=8;
 const	bool	HDMISIM::m_debug = false;
@@ -297,6 +298,8 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 			} else if (m_debug)
 				printf("\nVGA-FRAME\n");
 
+			gbl_nframes++;
+
 			m_vsync_count = 0;
 			m_out_of_sync = false;
 			if ((m_hsync_count != m_mode.raw_width())&&(!m_out_of_sync)) {
@@ -441,7 +444,7 @@ void	HDMIWIN::init(void) {
 	set_border_width(0);
 	add(*m_hdmisim);
 	show_all();
-	Gtk::Window::set_title(Glib::ustring("VGA Simulator"));
+	Gtk::Window::set_title(Glib::ustring("HDMI Simulator"));
 };
 
 HDMIWIN::HDMIWIN(void) : SIMWIN(640,480) {

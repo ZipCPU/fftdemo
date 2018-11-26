@@ -56,7 +56,7 @@ module	toplevel(i_clk,
 		ddr3_ba, ddr3_addr, ddr3_odt, ddr3_dm,
 		ddr3_dqs_p, ddr3_dqs_n,
 		ddr3_dq,
-		i_cpu_resetn,
+		// i_cpu_resetn,
 		//
 		// HDMI output clock
 		o_hdmi_out_clk_n, o_hdmi_out_clk_p,
@@ -84,7 +84,7 @@ module	toplevel(i_clk,
 	output	wire	[1:0]	ddr3_dm;
 	inout	wire	[1:0]	ddr3_dqs_p, ddr3_dqs_n;
 	inout	wire	[15:0]	ddr3_dq;
-	input	wire		i_cpu_resetn;
+	// input	wire		i_cpu_resetn;
 	// HDMI output clock
 	output	wire		o_hdmi_out_clk_n, o_hdmi_out_clk_p;
 	// HDMI output pixels
@@ -121,6 +121,7 @@ module	toplevel(i_clk,
 	wire		w_hdmi_bypass_sda;
 	wire		w_hdmi_bypass_scl;
 	wire	[7:0]		w_net_rxd, w_net_txd;
+	assign	w_hdmi_out_en = 1'b1;
 
 
 	//
@@ -157,6 +158,12 @@ module	toplevel(i_clk,
 	wire	[31:0]	sdram_debug;
 	wire	i_clk_buffered;
 
+	// Synchronous reset
+	reg	r_reset;
+	initial	r_reset = 1'b1;
+	always @(posedge i_clk_buffered)
+		r_reset <= 1'b0;
+
 	BUFG sdramclkbufi(.I(i_clk), .O(i_clk_buffered));
 
 	migsdram #(.AXIDWIDTH(5), .WBDATAWIDTH(32),
@@ -165,7 +172,7 @@ module	toplevel(i_clk,
 		.i_clk(i_clk_buffered),
 		.i_clk_200mhz(s_clk_200mhz),
 		.o_sys_clk(s_clk),
-		.i_rst(!i_cpu_resetn),
+		.i_rst(r_reset),
 		.o_sys_reset(s_reset),
 		.i_wb_cyc(sdram_cyc),
 		.i_wb_stb(sdram_stb),

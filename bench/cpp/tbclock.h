@@ -114,7 +114,7 @@ public:
 		unsigned long tmp_interval = (unsigned long)tmp;
 
 		m_increment_ps = (tmp_interval>>1)&-2l;
-printf("SET FREQ = %f MHz = %ld ps\n", frequency_hz/1e6, tmp_interval);
+		// printf("SET FREQ = %f MHz = %ld ps\n", frequency_hz/1e6, tmp_interval);
 		assert(m_increment_ps > 0);
 	}
 

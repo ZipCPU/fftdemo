@@ -44,19 +44,32 @@
 #ifndef	TESTB_H
 #define	TESTB_H
 
+#define	TRACE_VCD
+// #define	TRACE_FST
+
 #include <stdio.h>
 #include <stdint.h>
-#include <verilated.h>
+#include <Vhdmimain.h>
+#ifdef	TRACE_VCD
 #include <verilated_vcd_c.h>
+#endif
+#ifdef	TRACE_FST
+#include <verilated_fst_c.h>
+#endif
 #include "tbclock.h"
 
 #define	TBASSERT(TB,A) do { if (!(A)) { (TB).closetrace(); } assert(A); } while(0);
 
 template <class VA>	class TESTB {
 public:
-	VA	*m_core;
+	VA		*m_core;
 	bool		m_changed;
-	VerilatedVcdC*	m_trace;
+#ifdef	TRACE_VCD
+	VerilatedVcdC*	m_trace_vcd;
+#endif
+#ifdef	TRACE_FST
+	VerilatedFstC*	m_trace_fst;
+#endif
 	bool		m_done;
 	unsigned long	m_time_ps;
 	TBCLOCK		m_clk;
@@ -64,9 +77,14 @@ public:
 
 	TESTB(void) {
 		m_core = new VA;
-		m_time_ps  = 0ul;
-		m_trace    = NULL;
-		m_done     = false;
+		m_time_ps   = 0ul;
+#ifdef	TRACE_VCD
+		m_trace_vcd = NULL;
+#endif
+#ifdef	TRACE_FST
+		m_trace_fst = NULL;
+#endif
+		m_done      = false;
 		Verilated::traceEverOn(true);
 		m_core->i_clk = 0;
 		m_core->i_pixclk = 0;
@@ -75,32 +93,57 @@ public:
 		m_pixclk.init(6734);	//  148.50 MHz
 	}
 	virtual ~TESTB(void) {
-		if (m_trace)
-			m_trace->close();
+#ifdef	TRACE_VCD
+		if (m_trace_vcd)
+			m_trace_vcd->close();
+#endif
+#ifdef	TRACE_FST
+		if (m_trace_fst)
+			m_trace_fst->close();
+#endif
 		delete m_core;
 		m_core = NULL;
 	}
 
-	virtual	void	opentrace(const char *vcdname) {
-		if (!m_trace) {
-			m_trace = new VerilatedVcdC;
-			m_core->trace(m_trace, 99);
-			m_trace->open(vcdname);
-			m_trace->spTrace()->set_time_resolution("ps");
-			m_trace->spTrace()->set_time_unit("ps");
+#ifdef	TRACE_VCD
+	virtual	void	openvcd(const char *vcdname) {
+		if (!m_trace_vcd) {
+			m_trace_vcd = new VerilatedVcdC;
+			m_core->trace(m_trace_vcd, 99);
+			m_trace_vcd->open(vcdname);
+			m_trace_vcd->spTrace()->set_time_resolution("ps");
+			m_trace_vcd->spTrace()->set_time_unit("ps");
 		}
 	}
+#endif
 
-	void	trace(const char *vcdname) {
-		opentrace(vcdname);
+#ifdef	TRACE_FST
+	virtual	void	openfst(const char *vcdname) {
+		if (!m_trace_fst) {
+			m_trace_fst = new VerilatedFstC;
+			m_core->trace(m_trace_fst, 99);
+			m_trace_fst->open(vcdname);
+			// m_trace_fst->spTrace()->set_time_resolution("ps");
+			// m_trace_fst->spTrace()->set_time_unit("ps");
+		}
 	}
+#endif
 
 	virtual	void	closetrace(void) {
-		if (m_trace) {
-			m_trace->close();
-			delete m_trace;
-			m_trace = NULL;
+#ifdef	TRACE_VCD
+		if (m_trace_vcd) {
+			m_trace_vcd->close();
+			delete m_trace_vcd;
+			m_trace_vcd = NULL;
 		}
+#endif
+#ifdef	TRACE_FST
+		if (m_trace_fst) {
+			m_trace_fst->close();
+			delete m_trace_fst;
+			m_trace_fst = NULL;
+		}
+#endif
 	}
 
 	virtual	void	eval(void) {
@@ -116,7 +159,12 @@ public:
 		assert(mintime > 1);
 
 		eval();
-		if (m_trace) m_trace->dump(m_time_ps+1);
+#ifdef	TRACE_VCD
+		if (m_trace_vcd) m_trace_vcd->dump(m_time_ps+1);
+#endif
+#ifdef	TRACE_FST
+		if (m_trace_fst) m_trace_fst->dump(m_time_ps+1);
+#endif
 
 		m_core->i_clk = m_clk.advance(mintime);
 		m_core->i_pixclk = m_pixclk.advance(mintime);
@@ -124,10 +172,18 @@ public:
 		m_time_ps += mintime;
 
 		eval();
-		if (m_trace) {
-			m_trace->dump(m_time_ps+1);
-			m_trace->flush();
+#ifdef	TRACE_VCD
+		if (m_trace_vcd) {
+			m_trace_vcd->dump(m_time_ps+1);
+			m_trace_vcd->flush();
 		}
+#endif
+#ifdef	TRACE_FST
+		if (m_trace_fst) {
+			m_trace_fst->dump(m_time_ps+1);
+			m_trace_fst->flush();
+		}
+#endif
 
 		if (m_clk.falling_edge()) {
 			m_changed = true;

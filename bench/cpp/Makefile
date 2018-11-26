@@ -49,6 +49,9 @@ OBJDIR	:= obj-pc
 RTLD	:= ../../rtl
 YYMMDD  := `date +%Y%m%d`
 VOBJDR	:= $(RTLD)/obj_dir
+# THREADS := -DVL_THREADED
+# FLAGS	:= -std=gnu++14 -Wall -Og -g $(VDEFS)
+# VERILATOR_ROOT := /home/dan/tmp/verilator.git
 ifneq ($(VERILATOR_ROOT),)
 VERILATOR:=$(VERILATOR_ROOT)/bin/verilator
 else
@@ -67,7 +70,9 @@ CFLAGS  :=  $(GFXFLAGS)
 SIMSOURCES:= vgasim.cpp micnco.cpp hdmisim.cpp
 SIMOBJECTS:= $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(SIMSOURCES)))
 SIMHEADERS:= $(foreach header,$(subst .cpp,.h,$(SIMSOURCES)),$(wildcard $(header)))
-VOBJS   := $(OBJDIR)/verilated.o $(OBJDIR)/verilated_vcd_c.o
+# VOBJS   := $(OBJDIR)/verilated_vcd_c.o $(OBJDIR)/verilated_fst_c.o
+# VOBJS   += $(OBJDIR)/verilated.o $(OBJDIR)/verilated_threads.o
+VOBJS   := $(OBJDIR)/verilated_vcd_c.o $(OBJDIR)/verilated.o
 all:	main_tb hdmimain_tb archive hexf
 
 SOURCES := main_tb.cpp vgasim.cpp
@@ -80,29 +85,39 @@ all:	$(PROGRAMS)
 .PHONY: main_tb.o hdmimain_tb.o vgasim.o hdmisim.o micnco.o
 main_tb.o:	$(OBJDIR)/main_tb.o
 hdmimain_tb.o:	$(OBJDIR)/hdmimain_tb.o
+ddr_tb.o:	$(OBJDIR)/ddr_tb.o
 hdmisim.o:	$(OBJDIR)/hdmisim_tb.o
 micnco.o:	$(OBJDIR)/micnco.o
+memsim.o:	$(OBJDIR)/memsim.o
 
 %.o: $(OBJDIR)/%.o
 $(OBJDIR)/%.o: %.cpp
 	$(mk-objdir)
 	$(CXX) $(CFLAGS) $(INCS) -c $< -o $@
 
+$(OBJDIR)/%.o: $(VINCD)/%.cpp
+	$(mk-objdir)
+	$(CXX) $(FLAGS) $(INCS) $(THREADS) -c $< -o $@
+
 $(OBJDIR)/hdmimain_tb.o: main_tb.cpp $(SIMSOURCES) $(SIMHEADERS) $(VOBJDR)/Vhdmimain.h
 	$(mk-objdir)
 	$(CXX) -DHDMI $(CFLAGS) $(INCS) -c $< -o $(OBJDIR)/hdmimain_tb.o
 
-$(OBJDIR)/%.o: $(VINCD)/%.cpp
-	$(mk-objdir)
-	$(CXX) $(FLAGS) $(INCS) -c $< -o $@
-
+#
+#
+#
+#
 MAINOBJS := $(OBJDIR)/main_tb.o
 main_tb: $(MAINOBJS) $(SIMOBJECTS) $(VOBJS) $(VOBJDR)/Vmain__ALL.a
 	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vmain__ALL.a $(GFXLIBS) -o $@
 
 HDMIOBJS := $(OBJDIR)/hdmimain_tb.o
 hdmimain_tb: $(HDMIOBJS) $(SIMOBJECTS) $(VOBJS) $(VOBJDR)/Vhdmimain__ALL.a
-	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vhdmimain__ALL.a $(GFXLIBS) -o $@
+	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vhdmimain__ALL.a $(GFXLIBS) -lz -o $@
+
+DDROBJS := $(OBJDIR)/ddr_tb.o $(OBJDIR)/memsim.o
+ddr_tb: $(DDROBJS) $(SIMOBJECTS) $(VOBJS) $(VOBJDR)/Vhdmiddr__ALL.a
+	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vhdmiddr__ALL.a $(GFXLIBS) -lz -o $@
 
 HEXF := cmem_8.hex cmem_16.hex cmem_32.hex cmem_64.hex cmem_128.hex cmem_256.hex
 HEXF += cmem_512.hex cmem_1024.hex hanning.hex subfildown.hex

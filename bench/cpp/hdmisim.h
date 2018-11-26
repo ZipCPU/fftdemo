@@ -50,6 +50,7 @@
 #define	DATA_ISLAND	4
 #define	HDMI_LOST	5
 
+extern	int	gbl_nframes;
 
 class	HDMISIM : public Gtk::DrawingArea {
 public:

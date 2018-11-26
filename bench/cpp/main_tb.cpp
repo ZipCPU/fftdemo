@@ -127,13 +127,16 @@ public:
 #endif
 	}
 
-
-		
 	void	tick(void) {
 		if (m_done)
 			return;
 
 		TESTB<BASE>::tick();
+
+		if (gbl_nframes > 180) {
+			exit(EXIT_SUCCESS);
+			m_done = true;
+		}
 	}
 
 	bool	on_tick(void) {

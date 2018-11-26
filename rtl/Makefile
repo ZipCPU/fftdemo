@@ -34,22 +34,33 @@
 ################################################################################
 ##
 ##
-all:	test
+all:	test hexf
 FBDIR := .
 VDIRFB:= $(FBDIR)/obj_dir
 
-.PHONY: main
+.PHONY: main hdmimain ddr
 test: main
-main: $(VDIRFB)/Vmain__ALL.a $(VDIRFB)/Vhdmimain__ALL.a
+main: $(VDIRFB)/Vmain__ALL.a hdmimain ddr
+hdmimain: $(VDIRFB)/Vhdmimain__ALL.a
+ddr: $(VDIRFB)/Vhdmiddr__ALL.a
+
+.PHONY: hexf
+hexf:
+	ln -sf fft/cmem* .
 
 VOBJ := obj_dir
 SUBMAKE := $(MAKE) --no-print-directory --directory=$(VOBJ) -f
+# VERILATOR_ROOT := $(HOME)/tmp/verilator.git
+# THREADS := --threads 4
+# TRACE := --trace-fst
+THREADS :=
+TRACE := --trace
 ifeq ($(VERILATOR_ROOT),)
 VERILATOR := verilator
 else
 VERILATOR := $(VERILATOR_ROOT)/bin/verilator
 endif
-VFLAGS := -Wall -MMD -y fft -y video -y pmic --trace -cc
+VFLAGS := -O3 -Wall -MMD -y fft -y video -y pmic $(TRACE) $(THREADS) -cc
 
 $(VDIRFB)/Vmain__ALL.a: $(VDIRFB)/Vmain.h
 $(VDIRFB)/Vmain__ALL.a: $(VDIRFB)/Vmain.cpp
@@ -60,6 +71,11 @@ $(VDIRFB)/Vhdmimain__ALL.a: $(VDIRFB)/Vhdmimain.h
 $(VDIRFB)/Vhdmimain__ALL.a: $(VDIRFB)/Vhdmimain.cpp
 $(VDIRFB)/Vhdmimain__ALL.a: $(VDIRFB)/Vhdmimain.mk
 $(VDIRFB)/Vhdmimain.h: hdmimain.v main.v
+
+$(VDIRFB)/Vhdmiddr__ALL.a: $(VDIRFB)/Vhdmiddr.h
+$(VDIRFB)/Vhdmiddr__ALL.a: $(VDIRFB)/Vhdmiddr.cpp
+$(VDIRFB)/Vhdmiddr__ALL.a: $(VDIRFB)/Vhdmiddr.mk
+$(VDIRFB)/Vhdmiddr.h: hdmiddr.v main.v
 
 $(VDIRFB)/V%.cpp $(VDIRFB)/V%.h $(VDIRFB)/V%.mk: $(FBDIR)/%.v
 	$(VERILATOR) $(VFLAGS) $*.v
