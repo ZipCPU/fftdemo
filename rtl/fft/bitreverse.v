@@ -28,7 +28,7 @@
 // for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this program.  (It's in the $(ROOT)/doc directory, run make with no
+// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
 //
@@ -91,12 +91,11 @@ module	bitreverse(i_clk, i_reset, i_ce, i_in, o_out, o_sync);
 			o_sync <= (wraddr[(LGSIZE-1):0] == 0);
 
 `ifdef	FORMAL
+`define	ASSERT	assert
 `ifdef	BITREVERSE
 `define	ASSUME	assume
-`define	ASSERT	assert
 `else
 `define	ASSUME	assert
-`define	ASSERT	assume
 `endif
 
 	reg	f_past_valid;

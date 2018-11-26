@@ -46,7 +46,7 @@
 // for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this program.  (It's in the $(ROOT)/doc directory, run make with no
+// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
 //
@@ -90,6 +90,9 @@ module	fftstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	output	reg	[(2*OWIDTH-1):0]	o_data;
 	output	reg				o_sync;
 
+	// I am using the prefixes
+	// 	ib_*	to reference the inputs to the butterfly, and
+	// 	ob_*	to reference the outputs from the butterfly
 	reg	wait_for_sync;
 	reg	[(2*IWIDTH-1):0]	ib_a, ib_b;
 	reg	[(2*CWIDTH-1):0]	ib_c;
@@ -112,16 +115,16 @@ module	fftstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	reg	[(LGSPAN):0]		iaddr;
 	reg	[(2*IWIDTH-1):0]	imem	[0:((1<<LGSPAN)-1)];
 
-	reg	[LGSPAN:0]		oB;
+	reg	[LGSPAN:0]		oaddr;
 	reg	[(2*OWIDTH-1):0]	omem	[0:((1<<LGSPAN)-1)];
 
 	initial wait_for_sync = 1'b1;
 	initial iaddr = 0;
 	always @(posedge i_clk)
-		if (i_reset)
+	if (i_reset)
 	begin
-			wait_for_sync <= 1'b1;
-			iaddr <= 0;
+		wait_for_sync <= 1'b1;
+		iaddr <= 0;
 	end else if ((i_ce)&&((!wait_for_sync)||(i_sync)))
 	begin
 		//
@@ -137,6 +140,9 @@ module	fftstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	//
 	// Now, we have all the inputs, so let's feed the butterfly
 	//
+	// ib_sync is the synchronization bit to the butterfly.  It will
+	// be tracked within the butterfly, and used to create the o_sync
+	// value when the results from this output are produced
 	initial ib_sync = 1'b0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -149,6 +155,8 @@ module	fftstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 		ib_sync <= (iaddr==(1<<(LGSPAN)));
 	end
 
+	// Read the values from our input memory, and use them to feed first of two
+	// butterfly inputs
 	always	@(posedge i_clk)
 	if (i_ce)
 	begin
@@ -209,39 +217,56 @@ module	fftstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	//
 	// Next step: recover the outputs from the butterfly
 	//
-	initial oB        = 0;
+	// The first output can go immediately to the output of this routine
+	// The second output must wait until this time in the idle cycle
+	// oaddr is the output memory address, keeping track of where we are
+	// in this output cycle.
+	initial oaddr     = 0;
 	initial o_sync    = 0;
 	initial b_started = 0;
 	always @(posedge i_clk)
-		if (i_reset)
+	if (i_reset)
 	begin
-		oB <= 0;
-		o_sync <= 0;
+		oaddr     <= 0;
+		o_sync    <= 0;
+		// b_started will be true once we've seen the first ob_sync
 		b_started <= 0;
 	end else if (i_ce)
 	begin
-		o_sync <= (!oB[LGSPAN])?ob_sync : 1'b0;
+		o_sync <= (!oaddr[LGSPAN])?ob_sync : 1'b0;
 		if (ob_sync||b_started)
-			oB <= oB + { {(LGSPAN){1'b0}}, 1'b1 };
-		if ((ob_sync)&&(!oB[LGSPAN]))
-		// A butterfly output is available
+			oaddr <= oaddr + 1'b1;
+		if ((ob_sync)&&(!oaddr[LGSPAN]))
+			// If b_started is true, then a butterfly output is available
 			b_started <= 1'b1;
 	end
 
-	reg	[(LGSPAN-1):0]		dly_addr;
-	reg	[(2*OWIDTH-1):0]	dly_value;
+	reg	[(LGSPAN-1):0]		nxt_oaddr;
+	reg	[(2*OWIDTH-1):0]	pre_ovalue;
 	always @(posedge i_clk)
 	if (i_ce)
+		nxt_oaddr[0] <= oaddr[0];
+	generate if (LGSPAN>1)
 	begin
-		dly_addr <= oB[(LGSPAN-1):0];
-		dly_value <= ob_b;
-	end
+
+		always @(posedge i_clk)
+		if (i_ce)
+			nxt_oaddr[LGSPAN-1:1] <= oaddr[LGSPAN-1:1] + 1'b1;
+
+	end endgenerate
+
+	// Only write to the memory on the first half of the outputs
+	// We'll use the memory value on the second half of the outputs
 	always @(posedge i_clk)
-	if (i_ce)
-		omem[dly_addr] <= dly_value;
+	if ((i_ce)&&(!oaddr[LGSPAN]))
+		omem[oaddr[(LGSPAN-1):0]] <= ob_b;
 
 	always @(posedge i_clk)
 	if (i_ce)
-		o_data <= (!oB[LGSPAN])?ob_a : omem[oB[(LGSPAN-1):0]];
+		pre_ovalue <= omem[nxt_oaddr[(LGSPAN-1):0]];
+
+	always @(posedge i_clk)
+	if (i_ce)
+		o_data <= (!oaddr[LGSPAN]) ? ob_a : pre_ovalue;
 
 endmodule

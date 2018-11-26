@@ -33,7 +33,7 @@
 // for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this program.  (It's in the $(ROOT)/doc directory, run make with no
+// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
 //
@@ -96,23 +96,26 @@ module	longbimpy(i_clk, i_ce, i_a_unsorted, i_b_unsorted, o_r);
 	// taking the absolute value here would require an additional bit.
 	// However, because our results are now unsigned, we can stay
 	// within the number of bits given (for now).
+	initial u_a = 0;
 	generate if (IW > AW)
-	begin
+	begin : ABS_AND_ADD_BIT_TO_A
 		always @(posedge i_clk)
 			if (i_ce)
 				u_a <= { 1'b0, (i_a[AW-1])?(-i_a):(i_a) };
-	end else begin
+	end else begin : ABS_A
 		always @(posedge i_clk)
 			if (i_ce)
 				u_a <= (i_a[AW-1])?(-i_a):(i_a);
 	end endgenerate
 
+	initial sgn = 0;
+	initial u_b = 0;
 	always @(posedge i_clk)
-		if (i_ce)
-		begin
-			u_b <= (i_b[BW-1])?(-i_b):(i_b);
-			sgn <= i_a[AW-1] ^ i_b[BW-1];
-		end
+	if (i_ce)
+	begin : ABS_B
+		u_b <= (i_b[BW-1])?(-i_b):(i_b);
+		sgn <= i_a[AW-1] ^ i_b[BW-1];
+	end
 
 	wire	[(BW+LUTB-1):0]	pr_a, pr_b;
 
@@ -126,19 +129,28 @@ module	longbimpy(i_clk, i_ce, i_a_unsorted, i_b_unsorted, o_r);
 	// a time can follow this--but the first clock can do two at a time.
 	bimpy	#(BW) lmpy_0(i_clk,i_ce,u_a[(  LUTB-1):   0], u_b, pr_a);
 	bimpy	#(BW) lmpy_1(i_clk,i_ce,u_a[(2*LUTB-1):LUTB], u_b, pr_b);
+
+	initial r_s    = 0;
+	initial r_a[0] = 0;
+	initial r_b[0] = 0;
 	always @(posedge i_clk)
 		if (i_ce) r_a[0] <= u_a[(IW-1):(2*LUTB)];
 	always @(posedge i_clk)
 		if (i_ce) r_b[0] <= u_b;
 	always @(posedge i_clk)
 		if (i_ce) r_s <= { r_s[(TLEN-2):0], sgn };
+
+	initial acc[0] = 0;
 	always @(posedge i_clk) // One clk after p[0],p[1] become valid
-		if (i_ce) acc[0] <= { {(IW-LUTB){1'b0}}, pr_a}
-			  +{ {(IW-(2*LUTB)){1'b0}}, pr_b, {(LUTB){1'b0}} };
+	if (i_ce) acc[0] <= { {(IW-LUTB){1'b0}}, pr_a}
+		  +{ {(IW-(2*LUTB)){1'b0}}, pr_b, {(LUTB){1'b0}} };
 
 	generate // Keep track of intermediate values, before multiplying them
 	if (TLEN > 3) for(k=0; k<TLEN-3; k=k+1)
-	begin : gencopies
+	begin : GENCOPIES
+
+		initial r_a[k+1] = 0;
+		initial r_b[k+1] = 0;
 		always @(posedge i_clk)
 		if (i_ce)
 		begin
@@ -150,23 +162,27 @@ module	longbimpy(i_clk, i_ce, i_a_unsorted, i_b_unsorted, o_r);
 
 	generate // The actual multiply and accumulate stage
 	if (TLEN > 2) for(k=0; k<TLEN-2; k=k+1)
-	begin : genstages
-		// First, the multiply: 2-bits times BW bits
+	begin : GENSTAGES
 		wire	[(BW+LUTB-1):0] genp;
+
+		// First, the multiply: 2-bits times BW bits
 		bimpy #(BW) genmpy(i_clk,i_ce,r_a[k][(LUTB-1):0],r_b[k], genp);
 
 		// Then the accumulate step -- on the next clock
+		initial acc[k+1] = 0;
 		always @(posedge i_clk)
-			if (i_ce)
-				acc[k+1] <= acc[k] + {{(IW-LUTB*(k+3)){1'b0}},
-					genp, {(LUTB*(k+2)){1'b0}} };
+		if (i_ce)
+			acc[k+1] <= acc[k] + {{(IW-LUTB*(k+3)){1'b0}},
+				genp, {(LUTB*(k+2)){1'b0}} };
 	end endgenerate
 
 	wire	[(IW+BW-1):0]	w_r;
 	assign	w_r = (r_s[TLEN-1]) ? (-acc[TLEN-2]) : acc[TLEN-2];
+
+	initial o_r = 0;
 	always @(posedge i_clk)
-		if (i_ce)
-			o_r <= w_r[(AW+BW-1):0];
+	if (i_ce)
+		o_r <= w_r[(AW+BW-1):0];
 
 	generate if (IW > AW)
 	begin : VUNUSED

@@ -54,7 +54,7 @@
 // for more details.
 //
 // You should have received a copy of the GNU General Public License along
-// with this program.  (It's in the $(ROOT)/doc directory, run make with no
+// with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
 //
@@ -71,7 +71,13 @@
 //
 module fftmain(i_clk, i_reset, i_ce,
 		i_sample, o_result, o_sync);
-	parameter	IWIDTH=12, OWIDTH=16, LGWIDTH=10;
+	// The bit-width of the input, IWIDTH, output, OWIDTH, and the log
+	// of the FFT size.  These are localparams, rather than parameters,
+	// because once the core has been generated, they can no longer be
+	// changed.  (These values can be adjusted by running the core
+	// generator again.)  The reason is simply that these values have
+	// been hardwired into the core at several places.
+	localparam	IWIDTH=12, OWIDTH=16, LGWIDTH=10;
 	//
 	input	wire				i_clk, i_reset, i_ce;
 	//
@@ -175,7 +181,7 @@ module fftmain(i_clk, i_reset, i_ce,
 	// Now for the bit-reversal stage.
 	wire	br_sync;
 	wire	[(2*OWIDTH-1):0]	br_o_result;
-	bitreverse	#(10,16)
+	bitreverse	#(10,OWIDTH)
 		revstage(i_clk, i_reset,
 			(i_ce & br_start), br_sample,
 			br_o_result, br_sync);
