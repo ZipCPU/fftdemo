@@ -49,7 +49,16 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 		// HDMI outputs
 		o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
 		// PMic3 Microphone
-		o_adc_csn, o_adc_sck, i_adc_miso);
+		o_adc_csn, o_adc_sck, i_adc_miso,
+		// 8x LEDs
+		o_led);
+	localparam	LGMEM=21, LGDW=5, AW=LGMEM-2;
+	localparam	FW=13, LW=12;
+	// Horizontal/Vertical video parameters
+	localparam [FW-1:0]	HWIDTH=800, HPORCH=840, HSYNC=868, HRAW=1056;
+	localparam [LW-1:0]	LHEIGHT=600,LPORCH=601, LSYNC=605, LRAW=628;
+	localparam [AW-1:0]	BASEADDR=0,
+				LINEWORDS = 200; //  HWIDTH/(1<<(LGMEM-AW));
 	//
 	input	wire		i_clk, i_reset, i_pixclk;
 	//
@@ -62,6 +71,8 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	output	wire		o_adc_csn, o_adc_sck;
 	input	wire		i_adc_miso;
 	output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu;
+	//
+	output	wire	[7:0]	o_led;
 
 	//
 	//
@@ -80,6 +91,8 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	// wire	[3:0]		mem_sel;
 
 
+	//
+	// Divide 100MHz by 100 to achieve a 1MHz sample clock
 	reg			adc_start;
 	reg	[6:0]		adc_divider;
 	initial	adc_start = 1;
@@ -90,7 +103,7 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 		adc_divider <= 0;
 		adc_start <= 1;
 	end else begin
-		adc_divider <= adc_divider+1;
+		adc_divider <= adc_divider+1'b1;
 		adc_start <= 0;
 	end
 
@@ -100,12 +113,39 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	pmic adc(i_clk, adc_start, 1'b1, 1'b1, o_adc_csn, o_adc_sck, i_adc_miso,
 			{ adc_ign, adc_ce, adc_sample });
 
+	// Create a 1Hz LED flash from our sample clock
+	reg	[31:0]	adc_led_counter;
+	initial	adc_led_counter = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		adc_led_counter <= 0;
+	else if (adc_ce)
+		adc_led_counter <= adc_led_counter + 32'd4295;
+
 	wire		fil_ce;
 	wire	[19:0]	fil_sample;
+`ifdef	HIFREQUENCIES
 	subfildown #(.IW(12), .OW(20), .TW(12), .NDOWN(23), .LGNTAPS(10),
 			.INITIAL_COEFFS("subfildown.hex"))
 		fil(i_clk, i_reset, 1'b0, 12'h0, adc_ce, adc_sample[11:0],
 			fil_ce, fil_sample);
+`else
+	// Low frequencies more appropriate for voice
+	subfildown #(.IW(12), .OW(21), .TW(12), .NDOWN(52), .LGNTAPS(10),
+			.INITIAL_COEFFS("subfildownlow.hex"),
+			.SHIFT(4))
+		fil(i_clk, i_reset, 1'b0, 12'h0, adc_ce, adc_sample[11:0],
+			fil_ce, fil_sample);
+`endif
+
+	// We just downsampled by 23.  We should now have a 43kHz sample clock
+	reg	[31:0]	fltr_led_counter;
+	initial	fltr_led_counter = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		fltr_led_counter <= 0;
+	else if (fil_ce)
+		fltr_led_counter <= fltr_led_counter + 32'd98_784;
 
 
 	reg		alt_ce;
@@ -129,12 +169,21 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 		alt_ce <= 1'b0;
 
 	wire		pre_frame, pre_ce;
-	wire	[11:0]	pre_sample;	
+	wire	[11:0]	pre_sample;
+`define	HANNING
+`ifdef	HANNING
 	windowfn #(.IW(12), .OW(12), .TW(12), .LGNFFT(10),
 		.OPT_FIXED_TAPS(1'b1),
 		.INITIAL_COEFFS("hanning.hex")) wndw(i_clk, i_reset,
-			1'b0, 0, fil_ce, fil_sample[11:0], alt_ce,
-			pre_frame, pre_ce, pre_sample);	
+			1'b0, 12'h0, fil_ce, fil_sample[11:0], alt_ce,
+			pre_frame, pre_ce, pre_sample);
+`else
+	hires #(.IW(12), .OW(12), .TW(12), .LGNFFT(10),
+		.OPT_FIXED_TAPS(1'b1),
+		.INITIAL_COEFFS("f3.txt")) wndw(i_clk, i_reset,
+			1'b0, 12'h0, fil_ce, fil_sample[11:0], alt_ce,
+			pre_frame, pre_ce, pre_sample);
+`endif
 
 	wire		fft_sync;
 	wire	[31:0]	fft_sample;
@@ -148,13 +197,6 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	logfn logi(i_clk, i_reset,
 			pre_ce, fft_sync, fft_sample[31:16], fft_sample[15:0],
 			raw_pixel, raw_sync);
-	localparam	LGMEM=21, LGDW=5, AW=LGMEM-2;
-	localparam	FW=13, LW=12;
-	// Horizontal/Vertical video parameters
-	localparam [FW-1:0]	HWIDTH=800, HPORCH=840, HSYNC=868, HRAW=1056;
-	localparam [LW-1:0]	LHEIGHT=600,LPORCH=601, LSYNC=605, LRAW=628;
-	localparam [AW-1:0]	BASEADDR=0,
-				LINEWORDS = 200; //  HWIDTH/(1<<(LGMEM-AW));
 	//
 	//
 	wire	[AW-1:0]	baseoffset;
@@ -198,6 +240,130 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 			video_ack, video_err, video_stall, i_sdram_data,
 		o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
 		video_refresh);
+
+	reg	[31:0]	frame_led_count;
+	initial	frame_led_count = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		frame_led_count <= 0;
+	else if (video_refresh)
+		frame_led_count <= frame_led_count + 32'd71_582_788;
+
+	reg	stb_led, ack_led;
+	initial	{ stb_led, ack_led } = 0;
+	always @(posedge i_clk)
+	if ((o_sdram_stb)&&(!i_sdram_stall))
+		stb_led <= !stb_led;
+	always @(posedge i_clk)
+	if (i_sdram_ack)
+		ack_led <= !ack_led;
+
+	reg	[31:0]	clk_led;
+	initial	clk_led = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+		clk_led = 0;
+	else
+		clk_led <= clk_led + 32'd43;
+
+	reg	[7:0]	adc_mag;
+	always @(posedge i_clk)
+	casez(adc_sample)
+	12'b0000_0000_0000: adc_mag <= 8'h00;
+	12'b0000_0000_0001: adc_mag <= 8'h00;
+	12'b0000_0000_001?: adc_mag <= 8'h00;
+	12'b0000_0000_01??: adc_mag <= 8'h00;
+	12'b0000_0000_1???: adc_mag <= 8'h00;
+	12'b0000_0001_????: adc_mag <= 8'h00;
+	12'b0000_001?_????: adc_mag <= 8'h00;
+	12'b0000_010?_????: adc_mag <= 8'h01;
+	12'b0000_011?_????: adc_mag <= 8'h02;
+	12'b0000_10??_????: adc_mag <= 8'h03;
+	12'b0000_11??_????: adc_mag <= 8'h07;
+	12'b0001_0???_????: adc_mag <= 8'h0f;
+	12'b0001_1???_????: adc_mag <= 8'h1f;
+	12'b0010_????_????: adc_mag <= 8'h3f;
+	12'b0011_????_????: adc_mag <= 8'h7f;
+	12'b01??_????_????: adc_mag <= 8'hff;
+	//
+	12'b1111_1111_1111: adc_mag <= 8'h00;
+	12'b1111_1111_1110: adc_mag <= 8'h00;
+	12'b1111_1111_110?: adc_mag <= 8'h00;
+	12'b1111_1111_10??: adc_mag <= 8'h00;
+	12'b1111_1111_0???: adc_mag <= 8'h00;
+	12'b1111_1110_????: adc_mag <= 8'h00;
+	12'b1111_110?_????: adc_mag <= 8'h00;
+	12'b1111_101?_????: adc_mag <= 8'h01;
+	12'b1111_100?_????: adc_mag <= 8'h02;
+	12'b1111_01??_????: adc_mag <= 8'h03;
+	12'b1111_00??_????: adc_mag <= 8'h07;
+	12'b1110_1???_????: adc_mag <= 8'h0f;
+	12'b1110_0???_????: adc_mag <= 8'h1f;
+	12'b1101_????_????: adc_mag <= 8'h3f;
+	12'b1100_????_????: adc_mag <= 8'h7f;
+	12'b10??_????_????: adc_mag <= 8'hff;
+	endcase
+
+	reg	[7:0]	fil_mag;
+	always @(posedge i_clk)
+	casez(fil_sample[11:0])
+	12'b0000_0000_0000: fil_mag <= 8'h00;
+	12'b0000_0000_0001: fil_mag <= 8'h00;
+	12'b0000_0000_001?: fil_mag <= 8'h00;
+	12'b0000_0000_01??: fil_mag <= 8'h00;
+	12'b0000_0000_1???: fil_mag <= 8'h00;
+	12'b0000_0001_????: fil_mag <= 8'h00;
+	12'b0000_001?_????: fil_mag <= 8'h00;
+	12'b0000_010?_????: fil_mag <= 8'h01;
+	12'b0000_011?_????: fil_mag <= 8'h02;
+	12'b0000_10??_????: fil_mag <= 8'h03;
+	12'b0000_11??_????: fil_mag <= 8'h07;
+	12'b0001_0???_????: fil_mag <= 8'h0f;
+	12'b0001_1???_????: fil_mag <= 8'h1f;
+	12'b0010_????_????: fil_mag <= 8'h3f;
+	12'b0011_????_????: fil_mag <= 8'h7f;
+	12'b01??_????_????: fil_mag <= 8'hff;
+	//
+	12'b1111_1111_1111: fil_mag <= 8'h00;
+	12'b1111_1111_1110: fil_mag <= 8'h00;
+	12'b1111_1111_110?: fil_mag <= 8'h00;
+	12'b1111_1111_10??: fil_mag <= 8'h00;
+	12'b1111_1111_0???: fil_mag <= 8'h00;
+	12'b1111_1110_????: fil_mag <= 8'h00;
+	12'b1111_110?_????: fil_mag <= 8'h00;
+	12'b1111_101?_????: fil_mag <= 8'h01;
+	12'b1111_100?_????: fil_mag <= 8'h02;
+	12'b1111_01??_????: fil_mag <= 8'h03;
+	12'b1111_00??_????: fil_mag <= 8'h07;
+	12'b1110_1???_????: fil_mag <= 8'h0f;
+	12'b1110_0???_????: fil_mag <= 8'h1f;
+	12'b1101_????_????: fil_mag <= 8'h3f;
+	12'b1100_????_????: fil_mag <= 8'h7f;
+	12'b10??_????_????: fil_mag <= 8'hff;
+	endcase
+
+	reg	[7:0]	pix_mag, pix_tmp;
+	always @(posedge i_clk)
+	if (raw_sync)
+	begin
+		if (pix_tmp[7])
+			pix_mag <= -pix_tmp;
+		else
+			pix_mag <= pix_tmp;
+	end
+
+	always @(posedge i_clk)
+	if (raw_sync)
+		pix_tmp <= raw_pixel;
+	else if (raw_pixel > pix_tmp)
+		pix_tmp <= raw_pixel;
+	
+	// assign	o_led[0] = adc_led_counter[31];
+	// assign	o_led[1] = fltr_led_counter[31];
+	// assign	o_led[2] = frame_led_count[31];
+	// assign	o_led = adc_mag;
+	assign	o_led = fil_mag;
+	// assign	o_led = pix_mag;
 
 	// Make Verilator happy
 	// verilator lint_off UNUSED

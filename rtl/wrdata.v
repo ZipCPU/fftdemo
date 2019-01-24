@@ -51,6 +51,12 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	o_wb_cyc, o_wb_stb, o_wb_we, o_wb_addr, o_wb_data, o_wb_sel,
 	i_wb_ack, i_wb_stall, i_wb_err);
 	parameter	AW=20, DW=32, LW=12;
+`ifdef	FORMAL
+	localparam	WB_DEPTH = 2;
+`else
+	localparam	WB_DEPTH = 5;
+`endif
+
 	//
 	input	wire	i_clk, i_reset;
 	//
@@ -80,6 +86,13 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	reg	[AW-1:0]	r_lw, r_addr;
 	reg	[LW-1:0]	lno;
 	reg	[LW-1:0]	r_height;
+
+	reg	[WB_DEPTH-1:0]	pending;
+	reg			wb_full;
+	reg	[AW-1:0]	next_offset_plus_two;
+	reg	[AW+1:0]	offset_plus_one;
+	reg			r_wb_stb, last_ack;
+
 
 	initial	r_height = 480;
 	always @(posedge i_clk)
@@ -141,9 +154,8 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		fif_ce <= 1'b0;
 
 
-	reg	[AW+1:0]	offset_plus_one;
 	always @(*)
-		offset_plus_one = r_offset + 1;
+		offset_plus_one = r_offset + 1'b1;
 
 	initial	next_offset = 0;
 	always @(posedge i_clk)
@@ -153,7 +165,7 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		||(offset_plus_one[AW+1:2] > i_lw-1))
 		next_offset <= 0;
 	else
-		next_offset <= r_offset + 1;
+		next_offset <= r_offset + 1'b1;
 
 	initial	r_offset = 0;
 	always @(posedge i_clk)
@@ -162,13 +174,12 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	else if ((i_ce)&&(i_sync))
 		r_offset <= next_offset;
 
-	reg	[AW-1:0]	next_offset_plus_two;
 	always @(*)
 		next_offset_plus_two = next_offset[AW+1:2] + 2;
 	initial	o_offset = 1;
 	always @(posedge i_clk)
 	if (i_reset)
-		o_offset <= 1;
+		o_offset <= 1'b1;
 	else if ((i_ce)&&(i_sync))
 	begin
 		if (((next_offset[1:0]==2'b11)&&(next_offset_plus_two>= i_lw-1))
@@ -191,7 +202,6 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 				{ o_wb_addr, o_wb_data, o_wb_sel },
 				fif_rempty, fif_err);
 
-	reg	r_wb_stb, last_ack;
 
 	initial	o_wb_cyc = 0;
 	initial	r_wb_stb = 0;
@@ -211,15 +221,6 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 			o_wb_cyc <= 1'b0;
 	end
 		
-`ifdef	FORMAL
-	localparam	WB_DEPTH = 2;
-`else
-	localparam	WB_DEPTH = 5;
-`endif
-
-	reg	[WB_DEPTH-1:0]	pending;
-	reg		wb_full;
-
 	initial	pending  = 0;
 	initial	wb_full  = 0;
 	initial	last_ack = 0;
@@ -231,12 +232,12 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		last_ack<= 1'b1;
 	end else case({(o_wb_stb)&&(!i_wb_stall), i_wb_ack})
 		2'b01: begin
-			pending <= pending - 1;
+			pending <= pending - 1'b1;
 			wb_full <= 1'b0;
 			last_ack<= (pending <= 2);
 			end
 		2'b10: begin
-			pending <= pending + 1;
+			pending <= pending + 1'b1;
 			wb_full <= &pending[WB_DEPTH-1:1];
 			last_ack<= (pending == 0);
 			end

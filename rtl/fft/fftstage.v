@@ -198,7 +198,7 @@ module	fftstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	begin : HWBFLY
 		hwbfly #(.IWIDTH(IWIDTH),.CWIDTH(CWIDTH),.OWIDTH(OWIDTH),
 				.CKPCE(CKPCE), .SHIFT(BFLYSHIFT))
-			bfly(i_clk, i_reset, i_ce, (idle)?0:ib_c,
+			bfly(i_clk, i_reset, i_ce, (idle)? 0:ib_c,
 				(idle || (!i_ce)) ? 0:ib_a,
 				(idle || (!i_ce)) ? 0:ib_b,
 				(ib_sync)&&(i_ce),
@@ -207,9 +207,9 @@ module	fftstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 		butterfly #(.IWIDTH(IWIDTH),.CWIDTH(CWIDTH),.OWIDTH(OWIDTH),
 				.CKPCE(CKPCE),.SHIFT(BFLYSHIFT))
 			bfly(i_clk, i_reset, i_ce,
-					(idle||(!i_ce))?0:ib_c,
-					(idle||(!i_ce))?0:ib_a,
-					(idle||(!i_ce))?0:ib_b,
+					(idle||(!i_ce))? 0:ib_c,
+					(idle||(!i_ce))? 0:ib_a,
+					(idle||(!i_ce))? 0:ib_b,
 					(ib_sync&&i_ce),
 					ob_a, ob_b, ob_sync);
 	end endgenerate

@@ -69,7 +69,10 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	reg	[11:0]	hdmi_data;
 	reg	[7:0]	red_pixel, grn_pixel, blu_pixel;
 	reg		pre_line;
+	reg		first_frame;
 
+	wire			w_rd;
+	wire	[47:0]		f_vmode, f_hmode;
 	wire	[BPC-1:0]	i_red, i_grn, i_blu;
 	assign	i_red = i_rgb_pix[3*BPC-1:2*BPC];
 	assign	i_grn = i_rgb_pix[2*BPC-1:  BPC];
@@ -79,12 +82,22 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	reg	[VW-1:0]	vpos;
 	reg			hrd, vrd;
 
+
+	reg		pix_reset;
+	reg	[1:0]	pix_reset_pipe;
+	initial	{ pix_reset, pix_reset_pipe } = -1;
+	always @(posedge i_pixclk, posedge i_reset)
+	if (i_reset)
+		{ pix_reset, pix_reset_pipe } <= -1;
+	else
+		{ pix_reset, pix_reset_pipe } <= { pix_reset_pipe, 1'b0 };
+
 	initial	hpos       = 0;
 	initial	o_newline  = 0;
 	initial	hsync = 0;
 	initial	hrd = 1;
 	always @(posedge i_pixclk)
-	if (i_reset)
+	if (pix_reset)
 	begin
 		hpos <= 0;
 		o_newline <= 1'b0;
@@ -102,7 +115,7 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	end
 
 	always @(posedge i_pixclk)
-	if (i_reset)
+	if (pix_reset)
 		o_newframe <= 1'b0;
 	else if ((hpos == i_hm_width - 2)&&(vpos == i_vm_height-1))
 		o_newframe <= 1'b1;
@@ -112,45 +125,42 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	initial	vpos = 0;
 	initial	vsync = 1'b0;
 	always @(posedge i_pixclk)
-		if (i_reset)
-		begin
+	if (pix_reset)
+	begin
+		vpos <= 0;
+		vsync <= 1'b0;
+	end else if (hpos == i_hm_porch-1'b1)
+	begin
+		if (vpos < i_vm_raw-1'b1)
+			vpos <= vpos + 1'b1;
+		else
 			vpos <= 0;
-			vsync <= 1'b0;
-		end else if (hpos == i_hm_porch-1'b1)
-		begin
-			if (vpos < i_vm_raw-1'b1)
-				vpos <= vpos + 1'b1;
-			else
-				vpos <= 0;
-			// Realistically, the new frame begins at the top
-			// of the next frame.  Here, we define it as the end
-			// last valid row.  That gives any software depending
-			// upon this the entire time of the front and back
-			// porches, together with the synch pulse width time,
-			// to prepare to actually draw on this new frame before
-			// the first pixel clock is valid.
-			vsync <= (vpos >= i_vm_porch-1'b1)&&(vpos<i_vm_synch-1'b1);
-		end
+		// Realistically, the new frame begins at the top
+		// of the next frame.  Here, we define it as the end
+		// last valid row.  That gives any software depending
+		// upon this the entire time of the front and back
+		// porches, together with the synch pulse width time,
+		// to prepare to actually draw on this new frame before
+		// the first pixel clock is valid.
+		vsync <= (vpos >= i_vm_porch-1'b1)&&(vpos<i_vm_synch-1'b1);
+	end
 
 	initial	vrd = 1'b1;
 	always @(posedge i_pixclk)
-		vrd <= (vpos < i_vm_height)&&(!i_reset);
-
-	reg	first_frame;
+		vrd <= (vpos < i_vm_height)&&(!pix_reset);
 
 	initial	first_frame = 1'b1;
 	always @(posedge i_pixclk)
-		if (i_reset)
-			first_frame <= 1'b1;
-		else if (o_newframe)
-			first_frame <= 1'b0;
+	if (pix_reset)
+		first_frame <= 1'b1;
+	else if (o_newframe)
+		first_frame <= 1'b0;
 
-	wire	w_rd;
 	assign	w_rd = (hrd)&&(vrd)&&(!first_frame);
 
 	initial	o_rd = 1'b0;
 	always @(posedge i_pixclk)
-	if (i_reset)
+	if (pix_reset)
 		o_rd <= 1'b0;
 	else
 		o_rd <= w_rd;
@@ -174,7 +184,7 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 
 	initial	pre_line = 1'b1;
 	always @(posedge i_pixclk)
-	if (i_reset)
+	if (pix_reset)
 		pre_line <= 1'b1;
 	else
 		pre_line <= (vpos < i_vm_height);
@@ -198,7 +208,7 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 
 	initial	hdmi_type = GUARD;
 	always @(posedge i_pixclk)
-	if (i_reset)
+	if (pix_reset)
 		hdmi_type <= GUARD;
 	else if (pre_line)
 	begin
@@ -263,7 +273,6 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		assume(i_vm_synch  < i_vm_raw);
 	end
 
-	wire	[47:0]	f_vmode, f_hmode;
 	assign	f_hmode = { i_hm_width,  i_hm_porch, i_hm_synch, i_hm_raw };
 	assign	f_vmode = { i_vm_height, i_vm_porch, i_vm_synch, i_vm_raw };
 
@@ -278,18 +287,18 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		f_stable_mode = (f_last_vmode == f_vmode)&&(f_last_hmode == f_hmode);
 
 	always @(*)
-		if (!i_reset)
+		if (!pix_reset)
 			assume(f_stable_mode);
 
 	always @(posedge i_pixclk)
-	if ((!f_past_valid)||($past(i_reset)))
+	if ((!f_past_valid)||($past(pix_reset)))
 	begin
 		assert(hpos == 0);
 		assert(vpos == 0);
 	end
 
 	always @(posedge i_pixclk)
-	if ((f_past_valid)&&(!$past(i_reset))&&(!i_reset)
+	if ((f_past_valid)&&(!$past(pix_reset))&&(!pix_reset)
 			&&(f_stable_mode)&&($past(f_stable_mode)))
 	begin
 
@@ -367,7 +376,7 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	reg	[1:0]	f_video_start, f_packet_start;
 
 	always @(posedge i_pixclk)
-	if (i_reset)
+	if (pix_reset)
 		f_ctrl_length <= 4'hf;
 	else if (hdmi_type != CTL_PERIOD)
 		f_ctrl_length <= 0;
@@ -376,7 +385,7 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 
 	initial	f_video_start = 2'b01;
 	always @(posedge i_pixclk)
-	if (i_reset)
+	if (pix_reset)
 		f_video_start = 2'b01;
 	else if ((f_video_start == 2'b00)
 			&&(f_ctrl_length >= 4'hc)&&(hdmi_type == GUARD)
@@ -397,7 +406,7 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		f_packet_start <= 2'b00;
 
 	always @(posedge i_pixclk)
-	if ((f_past_valid)&&(!$past(i_reset)))
+	if ((f_past_valid)&&(!$past(pix_reset)))
 	begin
 		if (($past(hdmi_type != VIDEO_DATA))
 				&&(f_video_start != 2'b10))
@@ -405,7 +414,7 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	end
 
 	always @(posedge i_pixclk)
-	if ((f_past_valid)&&(!$past(i_reset))&&(!i_reset))
+	if ((f_past_valid)&&(!$past(pix_reset))&&(!pix_reset))
 	begin
 		if ((hpos < i_hm_width)&&(vpos < i_vm_height))
 			assert(hdmi_type == VIDEO_DATA);
@@ -442,7 +451,7 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		|=> (hdmi_type == VIDEO_DATA)&&(hpos == 0)&&(vpos == 0));
 
 	assert property (@(posedge i_clk)
-		disable iff (i_reset)
+		disable iff (pix_reset)
 		((hdmi_type != VIDEO_DATA) throughout (not VIDEO_PREAMBLE))
 
 	//
@@ -455,13 +464,13 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	endsequence
 
 	assert property (@(posedge i_clk)
-		disable iff (i_reset)
+		disable iff (pix_reset)
 		(DATA_PREAMBLE)
 		|=> (hdmi_type == DATA_ISLAND)[*64]);
 		##1 (hdmi_type == GUARD) [*2]);
 		
 	assert property (@(posedge i_clk)
-		disable iff (i_reset)
+		disable iff (pix_reset)
 		((hdmi_type != DATA_ISLAND) throughout (not DATA_PREAMBLE))
 		|=> (hdmi_type != DATA_ISLAND));
 		

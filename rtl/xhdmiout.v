@@ -39,6 +39,7 @@
 // `define	BYPASS_SERDES
 //
 module	xhdmiout(i_clk, i_hsclk, i_ce, i_word, o_hs_wire);
+	parameter [0:0]		BITREVERSE = 1'b0;
 	input	wire		i_clk, i_ce;
 	input	wire		i_hsclk;
 	input	wire	[9:0]	i_word;
@@ -48,6 +49,8 @@ module	xhdmiout(i_clk, i_hsclk, i_ce, i_word, o_hs_wire);
 	wire	[1:0]	slave_to_master;
 
 	reg	sync_ce, q_ce, qq_ce, reset;
+	initial	reset = 1'b1;
+	initial	{ sync_ce, qq_ce, q_ce } = 0;
 	always @(posedge i_clk)
 		q_ce <= i_ce;
 	always @(posedge i_clk)
@@ -73,8 +76,7 @@ module	xhdmiout(i_clk, i_hsclk, i_ce, i_word, o_hs_wire);
 	assign	brev_input[8] = i_word[1];
 	assign	brev_input[9] = i_word[0];
 
-	assign	w_in_word = i_word;
-	// assign	w_in_word = brev_input;
+	assign	w_in_word = (BITREVERSE) ? brev_input : i_word;
 
 	// According to the Artix-7 SelectIO resources guide, OSERDESE2
 	// latencies section, there is a 5 clock latency for a 10:1 DDR

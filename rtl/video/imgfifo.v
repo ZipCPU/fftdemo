@@ -121,7 +121,7 @@ module	imgfifo(i_clk, i_pixclk,
 		begin
 			if (last_stb)
 				o_wb_addr <= o_wb_addr + (i_lineaddr
-					-{{(AW-LGFLEN-1){1'b0}},i_linewords})+1;
+					-{{(AW-LGFLEN-1){1'b0}},i_linewords})+1'b1;
 			else
 				o_wb_addr <= o_wb_addr + 1'b1;
 		end

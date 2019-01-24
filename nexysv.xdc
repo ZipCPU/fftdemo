@@ -20,14 +20,14 @@ create_clock -period 10.000 -name INCLK -waveform {0.000 5.000} -add [get_ports 
 
 
 ## LEDs
-#set_property -dict {PACKAGE_PIN T14 IOSTANDARD LVCMOS25} [get_ports {o_led[0]}]
-#set_property -dict {PACKAGE_PIN T15 IOSTANDARD LVCMOS25} [get_ports {o_led[1]}]
-#set_property -dict {PACKAGE_PIN T16 IOSTANDARD LVCMOS25} [get_ports {o_led[2]}]
-#set_property -dict {PACKAGE_PIN U16 IOSTANDARD LVCMOS25} [get_ports {o_led[3]}]
-#set_property -dict {PACKAGE_PIN V15 IOSTANDARD LVCMOS25} [get_ports {o_led[4]}]
-#set_property -dict {PACKAGE_PIN W16 IOSTANDARD LVCMOS25} [get_ports {o_led[5]}]
-#set_property -dict {PACKAGE_PIN W15 IOSTANDARD LVCMOS25} [get_ports {o_led[6]}]
-#set_property -dict {PACKAGE_PIN Y13 IOSTANDARD LVCMOS25} [get_ports {o_led[7]}]
+set_property -dict {PACKAGE_PIN T14 IOSTANDARD LVCMOS25} [get_ports {o_led[0]}]
+set_property -dict {PACKAGE_PIN T15 IOSTANDARD LVCMOS25} [get_ports {o_led[1]}]
+set_property -dict {PACKAGE_PIN T16 IOSTANDARD LVCMOS25} [get_ports {o_led[2]}]
+set_property -dict {PACKAGE_PIN U16 IOSTANDARD LVCMOS25} [get_ports {o_led[3]}]
+set_property -dict {PACKAGE_PIN V15 IOSTANDARD LVCMOS25} [get_ports {o_led[4]}]
+set_property -dict {PACKAGE_PIN W16 IOSTANDARD LVCMOS25} [get_ports {o_led[5]}]
+set_property -dict {PACKAGE_PIN W15 IOSTANDARD LVCMOS25} [get_ports {o_led[6]}]
+set_property -dict {PACKAGE_PIN Y13 IOSTANDARD LVCMOS25} [get_ports {o_led[7]}]
 
 
 ## Buttons
@@ -76,12 +76,12 @@ create_clock -period 10.000 -name INCLK -waveform {0.000 5.000} -add [get_ports 
 
 
 ## HDMI out
-# set_property -dict { PACKAGE_PIN AA4   IOSTANDARD LVCMOS33    } [get_ports   io_hdmi_out_cec  ]
+set_property -dict { PACKAGE_PIN AA4   IOSTANDARD LVCMOS33    } [get_ports   io_hdmi_out_cec  ]
 set_property -dict { PACKAGE_PIN U1    IOSTANDARD TMDS_33     } [get_ports   o_hdmi_out_clk_n ]
 set_property -dict { PACKAGE_PIN T1    IOSTANDARD TMDS_33     } [get_ports   o_hdmi_out_clk_p ]
-# set_property -dict { PACKAGE_PIN AB13  IOSTANDARD LVCMOS25    } [get_ports   i_hdmi_out_hpd_n   ]
-# set_property -dict { PACKAGE_PIN U3    IOSTANDARD LVCMOS33    } [get_ports { io_hdmi_out_scl }]; #IO_L6P_T0_34 Sch=hdmi_tx_rscl
-# set_property -dict { PACKAGE_PIN V3    IOSTANDARD LVCMOS33    } [get_ports { io_hdmi_out_sda }]; #IO_L6N_T0_VREF_34 Sch=hdmi_tx_rsda
+set_property -dict { PACKAGE_PIN AB13  IOSTANDARD LVCMOS25    } [get_ports   i_hdmi_out_hpd_n   ]
+set_property -dict { PACKAGE_PIN U3    IOSTANDARD LVCMOS33    } [get_ports { io_hdmi_out_scl }]; #IO_L6P_T0_34 Sch=hdmi_tx_rscl
+set_property -dict { PACKAGE_PIN V3    IOSTANDARD LVCMOS33    } [get_ports { io_hdmi_out_sda }]; #IO_L6N_T0_VREF_34 Sch=hdmi_tx_rsda
 set_property -dict { PACKAGE_PIN Y1    IOSTANDARD TMDS_33     } [get_ports { o_hdmi_out_n[0] }]; #IO_L5N_T0_34 Sch=hdmi_tx_n[0]
 set_property -dict { PACKAGE_PIN W1    IOSTANDARD TMDS_33     } [get_ports { o_hdmi_out_p[0] }]; #IO_L5P_T0_34 Sch=hdmi_tx_p[0]
 set_property -dict { PACKAGE_PIN AB1   IOSTANDARD TMDS_33     } [get_ports { o_hdmi_out_n[1] }]; #IO_L7N_T1_34 Sch=hdmi_tx_n[1]
@@ -306,9 +306,22 @@ set_property -dict { PACKAGE_PIN AB6   IOSTANDARD LVCMOS33 } [get_ports { o_mic_
 #set_property -dict { PACKAGE_PIN F13   IOSTANDARD LVCMOS12 } [get_ports { fmc_la_p[33] }]; #IO_L1P_T0_16 Sch=fmc_la_p[33]
 
 
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*mem_reg*}]    -to [get_cells -hier -filter {NAME =~ *pixel_reg*}] 10.0;
-
-set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*mem_reg*}]    -to [get_cells -hier -filter {NAME =~ *hdmii*cmap_data*}] 10.0;
+# set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*mem_reg*}] -to [get_cells -hier -filter {NAME =~ *pixel_reg*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*mem*}] -to [get_cells -hier -filter {NAME =~ red_pixel*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*mem*}] -to [get_cells -hier -filter {NAME =~ grn_pixel*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*mem*}] -to [get_cells -hier -filter {NAME =~ blu_pixel*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*mem*}] -to [get_cells -hier -filter {NAME =~ *hdmii*cmap_data*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *readmem*fifo*rgray*}] -to [get_cells -hier -filter {NAME =~ *readmem*fifo*wq1_rgray*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *sys_reset*}]          -to [get_cells -hier -filter {NAME =~ *pix_reset_pipe*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *sys_reset*}]          -to [get_cells -hier -filter {NAME =~ *hpos*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *sys_reset*}]          -to [get_cells -hier -filter {NAME =~ *vpos*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *rgray*}]              -to [get_cells -hier -filter {NAME =~ *wq1_rgray*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *wgray*}]              -to [get_cells -hier -filter {NAME =~ *rq1_wgray*}] 10.0;
+# set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *lcl_stb*}]          -to [get_cells -hier -filter {NAME =~ *tfr_stb*}] 10.0;
+# set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *tfr_stb*}]          -to [get_cells -hier -filter {NAME =~ *tfr_ack*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *sys_reset*}]          -to [get_cells -hier -filter {NAME =~ *hdmihw*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *newframe*}]           -to [get_cells -hier -filter {NAME =~ *wb_reset_pipe*}] 10.0;
+set_max_delay -datapath_only -from [get_cells -hier -filter {NAME=~ *ohdmick*sync_ce*}]    -to [get_cells -hier -filter {NAME =~ *serdes* }] 10.0;
 
 set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 set_property BITSTREAM.CONFIG.CONFIGRATE 50 [current_design]

@@ -36,8 +36,6 @@
 //
 //
 `default_nettype	none
-
-
 //
 // Here we declare our toplevel.v (toplevel) design module.
 // All design logic must take place beneath this top level.
@@ -62,8 +60,16 @@ module	toplevel(i_clk,
 		o_hdmi_out_clk_n, o_hdmi_out_clk_p,
 		// HDMI output pixels
 		o_hdmi_out_p, o_hdmi_out_n,
+		//
+		// Extra HDMI wires
+		io_hdmi_out_cec,
+		i_hdmi_out_hpd_n,
+		io_hdmi_out_scl,
+		io_hdmi_out_sda,
 		// The PMic3 microphone wires
-		o_mic_csn, o_mic_sck, i_mic_din);
+		o_mic_csn, o_mic_sck, i_mic_din,
+		//
+		o_led);
 	//
 	// Declaring our input and output ports.  We listed these above,
 	// now we are declaring them here.
@@ -92,6 +98,13 @@ module	toplevel(i_clk,
 	// PMod MIC3
 	output	wire		o_mic_csn, o_mic_sck;
 	input	wire		i_mic_din;
+	output	wire	[7:0]	o_led;
+
+	output	wire	io_hdmi_out_cec;
+	input	wire	i_hdmi_out_hpd_n;
+	output	wire	io_hdmi_out_scl, io_hdmi_out_sda;
+
+	assign	{ io_hdmi_out_scl, io_hdmi_out_sda, io_hdmi_out_cec } = 3'h7;
 
 	//
 	// Declaring component data, internal wires and registers
@@ -117,10 +130,10 @@ module	toplevel(i_clk,
 	wire	s_clk_200mhz, s_clk_200mhz_unbuffered,
 		sysclk_locked, sysclk_feedback;
 	//
-	wire		w_hdmi_out_en;
-	wire		w_hdmi_bypass_sda;
-	wire		w_hdmi_bypass_scl;
-	wire	[7:0]		w_net_rxd, w_net_txd;
+	wire			w_hdmi_out_en;
+	wire			w_hdmi_bypass_sda;
+	wire			w_hdmi_bypass_scl;
+	wire	[7:0]		w_net_rxd, w_net_txd, w_led;
 	assign	w_hdmi_out_en = 1'b1;
 
 
@@ -149,7 +162,8 @@ module	toplevel(i_clk,
 		// 10-bit HDMI output pixels, set within the main module
 		w_hdmi_out_r, w_hdmi_out_g, w_hdmi_out_b,
 		// The PMic3 microphone wires
-		o_mic_csn, o_mic_sck, i_mic_din);
+		o_mic_csn, o_mic_sck, i_mic_din,
+		w_led);
 
 
 	//
@@ -202,17 +216,22 @@ module	toplevel(i_clk,
 		// , .o_ram_dbg(sdram_debug)
 		);
 	
-	xhdmiout ohdmick(s_pixclk, s_pixclkx10, w_hdmi_out_en,
+	xhdmiout #(.BITREVERSE(1'b0)) ohdmick(s_pixclk, s_pixclkx10,
+			w_hdmi_out_en,
 			10'h3e0, { o_hdmi_out_clk_p, o_hdmi_out_clk_n });
-	xhdmiout ohdmir(s_pixclk, s_pixclkx10, w_hdmi_out_en,
+	xhdmiout #(.BITREVERSE(1'b0)) ohdmir(s_pixclk, s_pixclkx10,
+			w_hdmi_out_en,
 			w_hdmi_out_r, { o_hdmi_out_p[2], o_hdmi_out_n[2] });
-	xhdmiout ohdmig(s_pixclk, s_pixclkx10, w_hdmi_out_en,
+	xhdmiout #(.BITREVERSE(1'b0)) ohdmig(s_pixclk, s_pixclkx10,
+			w_hdmi_out_en,
 			w_hdmi_out_g, { o_hdmi_out_p[1], o_hdmi_out_n[1] });
-	xhdmiout ohdmib(s_pixclk, s_pixclkx10, w_hdmi_out_en,
+	xhdmiout #(.BITREVERSE(1'b0)) ohdmib(s_pixclk, s_pixclkx10,
+			w_hdmi_out_en,
 			w_hdmi_out_b, { o_hdmi_out_p[0], o_hdmi_out_n[0] });
 
 	wire	s_pixclk,    s_pixclk_unbuffered,
-		s_pixclkx10, s_pixclkx10_unbuffered;
+		s_pixclkx10, s_pixclkx10_unbuffered,
+		sysclk_feedback_unbuffered;
 
 	// But ... the delay controller requires a 200 MHz reference clock,
 	// so ... let's create one
@@ -228,12 +247,15 @@ module	toplevel(i_clk,
 			.CLKOUT1(s_pixclk_unbuffered),		//  40 MHz
 			.CLKOUT2(s_pixclkx10_unbuffered),	// 400 MHz
 			.PWRDWN(1'b0), .RST(1'b0),
-			.CLKFBOUT(sysclk_feedback),
+			.CLKFBOUT(sysclk_feedback_unbuffered),
 			.CLKFBIN(sysclk_feedback),
 			.LOCKED(sysclk_locked));
 
 	BUFG	sysbuf(.I(s_clk_200mhz_unbuffered),.O(s_clk_200mhz));
 	BUFG	pixbuf(.I(s_pixclk_unbuffered),    .O(s_pixclk));
 	BUFG	pix10x(.I(s_pixclkx10_unbuffered), .O(s_pixclkx10));
+	BUFG	buffb(.I(sysclk_feedback_unbuffered), .O(sysclk_feedback));
+
+	assign	o_led = (i_hdmi_out_hpd_n) ? 8'hff : w_led;
 
 endmodule // end of toplevel.v module definition

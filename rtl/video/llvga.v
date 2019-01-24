@@ -69,6 +69,16 @@ module	llvga(i_pixclk, i_reset,
 	assign	i_grn = i_rgb_pix[2*BPC-1:  BPC];
 	assign	i_blu = i_rgb_pix[  BPC-1:0];
 
+	reg		s_reset;
+	reg	[1:0]	reset_pipe;
+
+	initial	{ s_reset, reset_pipe } <= -1;
+	always @(posedge i_pixclk, posedge i_reset)
+	if (i_reset)
+		{ s_reset, reset_pipe } <= -1;
+	else
+		{ s_reset, reset_pipe } <= { reset_pipe, 1'b0 };
+	
 	reg	[HW-1:0]	hpos;
 	reg	[VW-1:0]	vpos;
 	reg		hrd, vrd;
@@ -78,7 +88,7 @@ module	llvga(i_pixclk, i_reset,
 	initial	o_hsync = 0;
 	initial	hrd = 1;
 	always @(posedge i_pixclk)
-		if (i_reset)
+		if (s_reset)
 		begin
 			hpos <= 0;
 			o_newline <= 1'b0;
@@ -97,7 +107,7 @@ module	llvga(i_pixclk, i_reset,
 		end
 
 	always @(posedge i_pixclk)
-	if (i_reset)
+	if (s_reset)
 		o_newframe <= 1'b0;
 	else if ((hpos == i_hm_width - 2)&&(vpos == i_vm_height-1))
 		o_newframe <= 1'b1;
@@ -107,60 +117,60 @@ module	llvga(i_pixclk, i_reset,
 	initial	vpos = 0;
 	initial	o_vsync = 1'b0;
 	always @(posedge i_pixclk)
-		if (i_reset)
-		begin
+	if (s_reset)
+	begin
+		vpos <= 0;
+		o_vsync <= 1'b0;
+	end else if (hpos == i_hm_porch-1'b1)
+	begin
+		if (vpos < i_vm_raw-1'b1)
+			vpos <= vpos + 1'b1;
+		else
 			vpos <= 0;
-			o_vsync <= 1'b0;
-		end else if (hpos == i_hm_porch-1'b1)
-		begin
-			if (vpos < i_vm_raw-1'b1)
-				vpos <= vpos + 1'b1;
-			else
-				vpos <= 0;
-			// Realistically, the new frame begins at the top
-			// of the next frame.  Here, we define it as the end
-			// last valid row.  That gives any software depending
-			// upon this the entire time of the front and back
-			// porches, together with the synch pulse width time,
-			// to prepare to actually draw on this new frame before
-			// the first pixel clock is valid.
-			o_vsync <= (vpos >= i_vm_porch-1'b1)&&(vpos<i_vm_synch-1'b1);
-		end
+		// Realistically, the new frame begins at the top
+		// of the next frame.  Here, we define it as the end
+		// last valid row.  That gives any software depending
+		// upon this the entire time of the front and back
+		// porches, together with the synch pulse width time,
+		// to prepare to actually draw on this new frame before
+		// the first pixel clock is valid.
+		o_vsync <= (vpos >= i_vm_porch-1'b1)&&(vpos<i_vm_synch-1'b1);
+	end
 
 	initial	vrd = 1'b1;
 	always @(posedge i_pixclk)
-		vrd <= (vpos < i_vm_height)&&(!i_reset);
+		vrd <= (vpos < i_vm_height)&&(!s_reset);
 
 	reg	first_frame;
 
 	initial	first_frame = 1'b1;
 	always @(posedge i_pixclk)
-		if (i_reset)
-			first_frame <= 1'b1;
-		else if (o_newframe)
-			first_frame <= 1'b0;
+	if (s_reset)
+		first_frame <= 1'b1;
+	else if (o_newframe)
+		first_frame <= 1'b0;
 
 	wire	w_rd;
 	assign	w_rd = (hrd)&&(vrd)&&(!first_frame);
 
 	initial	o_rd = 1'b0;
 	always @(posedge i_pixclk)
-		if (i_reset)
-			o_rd <= 1'b0;
-		else
-			o_rd <= w_rd;
+	if (s_reset)
+		o_rd <= 1'b0;
+	else
+		o_rd <= w_rd;
 
 	always @(posedge i_pixclk)
-		if (w_rd)
-		begin
-			o_red <= i_red;
-			o_grn <= i_grn;
-			o_blu <= i_blu;
-		end else begin
-			o_red <= 0;
-			o_grn <= 0;
-			o_blu <= 0;
-		end
+	if (w_rd)
+	begin
+		o_red <= i_red;
+		o_grn <= i_grn;
+		o_blu <= i_blu;
+	end else begin
+		o_red <= 0;
+		o_grn <= 0;
+		o_blu <= 0;
+	end
 
 //
 // Formal properties for verification purposes
@@ -172,7 +182,7 @@ module	llvga(i_pixclk, i_reset,
 		f_past_valid <= 1'b1;
 	always @(*)
 		if (!f_past_valid)
-			assume(i_reset);
+			assume(s_reset);
 
 	always @(*)
 	begin
@@ -202,18 +212,18 @@ module	llvga(i_pixclk, i_reset,
 		f_stable_mode = (f_last_vmode == f_vmode)&&(f_last_hmode == f_hmode);
 
 	always @(*)
-		if (!i_reset)
+		if (!s_reset)
 			assume(f_stable_mode);
 
 	always @(posedge i_pixclk)
-	if ((!f_past_valid)||($past(i_reset)))
+	if ((!f_past_valid)||($past(s_reset)))
 	begin
 		assert(hpos == 0);
 		assert(vpos == 0);
 	end
 
 	always @(posedge i_pixclk)
-	if ((f_past_valid)&&(!$past(i_reset))&&(!i_reset)
+	if ((f_past_valid)&&(!$past(s_reset))&&(!s_reset)
 			&&(f_stable_mode)&&($past(f_stable_mode)))
 	begin
 
