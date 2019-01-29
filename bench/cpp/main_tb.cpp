@@ -137,7 +137,10 @@ int	main(int argc, char **argv) {
 	tb = new TESTBENCH();
 	tb->reset();
 
-	// tb->opentrace("fftdemo.vcd");
+	if (false) {
+		printf("Writing a trace file\n");
+		tb->opentrace("fftdemo.vcd");
+	}
 	Gtk::Main::run(tb->m_win);
 
 	exit(0);
