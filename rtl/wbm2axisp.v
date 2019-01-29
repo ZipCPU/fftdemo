@@ -28,7 +28,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2016, Gisselquist Technology, LLC
+// Copyright (C) 2016-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -83,7 +83,7 @@ module wbm2axisp #(
 	input	wire			i_axi_wready,  // Write data ready
 	output	reg	[C_AXI_DATA_WIDTH-1:0]	o_axi_wdata,	// Write data
 	output	reg	[C_AXI_DATA_WIDTH/8-1:0] o_axi_wstrb,	// Write strobes
-	output	wire			o_axi_wlast,	// Last write transaction   
+	output	wire			o_axi_wlast,	// Last write transaction
 	output	reg			o_axi_wvalid,	// Write valid
 
 // AXI write response channel signals
@@ -105,7 +105,7 @@ module wbm2axisp #(
 	output	wire	[3:0]		o_axi_arqos,	// Read Protection type
 	output	reg			o_axi_arvalid,	// Read address valid
 
-// AXI read data channel signals   
+// AXI read data channel signals
 	input wire [C_AXI_ID_WIDTH-1:0]	i_axi_rid,     // Response ID
 	input	wire	[1:0]		i_axi_rresp,   // Read response
 	input	wire			i_axi_rvalid,  // Read reponse valid

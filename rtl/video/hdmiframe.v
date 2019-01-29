@@ -4,14 +4,16 @@
 //
 // Project:	vgasim, a Verilator based VGA simulator demonstration
 //
-// Purpose:	
+// Purpose:	This module merges the lower level HDMI controller with an
+//		asynchronous memory read FIFO so as to be able to drive it
+//	with pixels.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -92,6 +94,11 @@ module	hdmiframe(i_clk, i_pixclk,
 	assign	cmap_rd = (!cmap_valid)||(cmap_fill == 0)
 				||((cmap_fill == 1)&&(hdmi_rd));
 
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Step one: Read pixel data from memory
+	//
+	//
 	imgfifo #(.ADDRESS_WIDTH(AW),
 		.BUSW(DW), .LGFLEN(LGF), .LW(LW))
 		readmem(i_clk, i_pixclk,
@@ -104,6 +111,13 @@ module	hdmiframe(i_clk, i_pixclk,
 					i_wb_ack, i_wb_err, i_wb_stall, i_wb_data,
 				cmap_rd, fifo_valid, fifo_word, fifo_err);
 
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Step two: Expand the 8-bit pixel data into 24-bit full color using
+	//		a color map.  Also break the pixels from the packed
+	//		data words.
+	//
+	//
 	always @(posedge i_pixclk)
 	if (hdmi_newframe)
 	begin
@@ -130,8 +144,14 @@ module	hdmiframe(i_clk, i_pixclk,
 				hdmi_newline, fifo_err, fifo_valid };
 	// verilator lint_on  UNUSED
 
-	// Actually control the VGA hardware, produce the sync's, and output
-	// the color data given
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Step three: 
+	//
+	// Actually control/drive the HDMI hardware, produce the sync's, and
+	// output the color data and HDMI streams given the color datawords.
+	//
+	//
 	genhdmi	#(.HW(FW),.VW(LW))
 		hdmihw(i_pixclk, (i_reset), pixel[(3*BPC-1):0],
 				i_hm_width, i_hm_porch, i_hm_synch, i_hm_raw,
@@ -139,8 +159,10 @@ module	hdmiframe(i_clk, i_pixclk,
 				hdmi_rd, hdmi_newline, hdmi_newframe,
 				o_hdmi_red, o_hdmi_grn, o_hdmi_blu);
 
+	// Return a "new-frame" strobe signal at the end of the image frame
+	// data, in case any software needs to work on the data at that time.
+	//
 	transferstb newframe(i_pixclk, i_clk, hdmi_newframe, o_interrupt);
-	// assign	o_interrupt = vga_newframe;
 
 	// Make verilator happy
 	// verilator lint_off UNUSED

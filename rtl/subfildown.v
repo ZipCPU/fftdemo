@@ -15,7 +15,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -46,7 +46,8 @@ module	subfildown(i_clk, i_reset, i_wr_tap, i_tap,
 		i_ce, i_sample, o_ce, o_result);
 	//
 	parameter	IW=16,OW=24,TW=12;
-	parameter	NDOWN=23;
+	parameter	LGNDOWN=7;
+	parameter [LGNDOWN-1:0]	NDOWN=23;
 	parameter	LGNTAPS=10;
 	parameter [0:0]	FIXED_TAPS = 1'b0;
 	parameter	INITIAL_COEFFS = "";
@@ -110,9 +111,9 @@ module	subfildown(i_clk, i_reset, i_wr_tap, i_tap,
 	// Write data logic
 	//
 	///////////////////////////////////////////////
-	reg	[4:0]	countdown;
-	reg [LGNTAPS-1:0]	wraddr;
-	reg		first_sample;
+	reg	[LGNDOWN-1:0]	countdown;
+	reg	[LGNTAPS-1:0]	wraddr;
+	reg			first_sample;
 
 	initial	first_sample = 0;
 	initial	wraddr    = 0;
@@ -122,7 +123,7 @@ module	subfildown(i_clk, i_reset, i_wr_tap, i_tap,
 	begin
 		dmem[wraddr] <= i_sample;
 		wraddr <= wraddr + 1'b1;
-		countdown <= countdown - 1'b1;
+		countdown <= countdown - 1;
 		first_sample <= (countdown == 0);
 		if (countdown == 0)
 			countdown <= NDOWN-1;

@@ -20,7 +20,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -164,7 +164,7 @@ int	main(int argc, char **argv) {
 	tb = new TESTBENCH();
 	tb->reset();
 
-	// tb->opentrace("fftdemo.vcd");
+	tb->tracevcd("fftdemo.vcd");
 	Gtk::Main::run(tb->m_hdmi);
 
 	exit(0);

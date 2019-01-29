@@ -18,7 +18,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -179,7 +179,7 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	initial	o_offset = 1;
 	always @(posedge i_clk)
 	if (i_reset)
-		o_offset <= 1'b1;
+		o_offset <= 1;
 	else if ((i_ce)&&(i_sync))
 	begin
 		if (((next_offset[1:0]==2'b11)&&(next_offset_plus_two>= i_lw-1))

@@ -4,14 +4,17 @@
 //
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
-// Purpose:	
+// Purpose:	This is the "top-level" of the implementable design (HDMI+DDR).
+//		It's also the one file that doesn't get simulated with
+//	Verilator, so it contains Xilinx only (unsimulatable) primitives
+//	within it.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017-2018, Gisselquist Technology, LLC
+// Copyright (C) 2017-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -215,7 +218,7 @@ module	toplevel(i_clk,
 		.io_ddr_data(ddr3_dq)
 		// , .o_ram_dbg(sdram_debug)
 		);
-	
+
 	xhdmiout #(.BITREVERSE(1'b0)) ohdmick(s_pixclk, s_pixclkx10,
 			w_hdmi_out_en,
 			10'h3e0, { o_hdmi_out_clk_p, o_hdmi_out_clk_n });

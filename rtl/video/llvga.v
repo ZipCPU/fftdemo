@@ -4,14 +4,14 @@
 //
 // Project:	vgasim, a Verilator based VGA simulator demonstration
 //
-// Purpose:	
+// Purpose:	A lower-level VGA controller
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017-2018, Gisselquist Technology, LLC
+// Copyright (C) 2017-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -72,13 +72,13 @@ module	llvga(i_pixclk, i_reset,
 	reg		s_reset;
 	reg	[1:0]	reset_pipe;
 
-	initial	{ s_reset, reset_pipe } <= -1;
+	initial	{ s_reset, reset_pipe } = -1;
 	always @(posedge i_pixclk, posedge i_reset)
 	if (i_reset)
 		{ s_reset, reset_pipe } <= -1;
 	else
 		{ s_reset, reset_pipe } <= { reset_pipe, 1'b0 };
-	
+
 	reg	[HW-1:0]	hpos;
 	reg	[VW-1:0]	vpos;
 	reg		hrd, vrd;

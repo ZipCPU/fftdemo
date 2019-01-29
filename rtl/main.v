@@ -15,7 +15,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -45,22 +45,18 @@
 module	main(i_clk, i_reset, i_pixclk,
 		o_adc_csn, o_adc_sck, i_adc_miso,
 `define	VOUT
-`ifdef	HDMI
-		o_hdmi_red, o_hdmi_grn, o_hdmi_blu
-`else
 		o_vga_vsync, o_vga_hsync, o_vga_red, o_vga_grn, o_vga_blu
-`endif
 		, hsync, vsync, state, state_counter, vguard, dguard, vpre, dpre, s, hsync_count
 		);
-	input	wire		i_clk, i_reset, i_pixclk;
+	input	wire		i_clk;
+	// Verilator lint_off SYNCASYNCNET
+	input	wire		i_reset;
+	// Verilator lint_on  SYNCASYNCNET
+	input	wire		i_pixclk;
 	output	wire		o_adc_csn, o_adc_sck;
 	input	wire		i_adc_miso;
-`ifdef	HDMI
-	output	wire	[9:0]	o_hdmi_red, o_hdmi_grn, o_hdmi_blu;
-`else
 	output	wire		o_vga_vsync, o_vga_hsync;
 	output	wire	[7:0]	o_vga_red, o_vga_grn, o_vga_blu;
-`endif
 
 	// Verilator lint_off UNUSED
 	(* keep *)	input	wire		hsync, vsync;
@@ -194,18 +190,7 @@ module	main(i_clk, i_reset, i_pixclk,
 
 	wire	[AW-1:0]	read_offset;
 	assign	read_offset = baseoffset; // LINEWORDS - baseoffset;
-`ifdef	HDMI
-	hdmiframe #(.ADDRESS_WIDTH(AW), .FW(FW), .LW(LW)
-		) hdmii(i_clk, i_pixclk, i_reset, 1'b1,
-		BASEADDR + read_offset, LINEWORDS[FW:0],
-		HWIDTH,  HPORCH, HSYNC, HRAW,	// Horizontal mode
-		LHEIGHT, LPORCH, LSYNC, LRAW,	// Vertical mode
-		// Wishbone
-		video_cyc, video_stb, video_addr,
-			video_ack, video_err, video_stall, mem_data,
-		o_hdmi_red, o_hdmi_grn, o_hdmi_blu,
-		video_refresh);
-`else
+
 	wbvgaframe #(.ADDRESS_WIDTH(AW), .FW(FW), .LW(LW)
 		) vgai(i_clk, i_pixclk, i_reset, 1'b1,
 		BASEADDR + read_offset, LINEWORDS[FW:0],
@@ -216,7 +201,6 @@ module	main(i_clk, i_reset, i_pixclk,
 			video_ack, video_err, video_stall, mem_data,
 		o_vga_vsync, o_vga_hsync, o_vga_red, o_vga_grn, o_vga_blu,
 		video_refresh);
-`endif
 
 	// Make Verilator happy
 	// verilator lint_off UNUSED

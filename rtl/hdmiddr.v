@@ -15,7 +15,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -89,12 +89,31 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 				dat_ack, video_ack, // mem_ack,
 				dat_err, video_err; // mem_err;
 	// wire	[3:0]		mem_sel;
+	reg			adc_start;
+	reg	[6:0]		adc_divider;
+	wire			adc_ign;
+	wire		adc_ce;
+	wire	[11:0]	adc_sample;
+	reg	[31:0]	adc_led_counter;
+	wire		fil_ce;
+	wire	[20:0]	fil_sample;
+	reg	[31:0]	fltr_led_counter;
+	reg		alt_ce;
+	reg	[6:0]	alt_countdown;
+	wire		pre_frame, pre_ce;
+	wire	[11:0]	pre_sample;
+	wire		fft_sync;
+	wire	[31:0]	fft_sample;
+	wire		raw_sync;
+	wire	[7:0]	raw_pixel;
+	wire	[AW-1:0]	baseoffset;
+	wire	[AW-1:0]	last_line_addr;
+	wire	video_refresh;
+	wire	[AW-1:0]	read_offset;
 
 
 	//
 	// Divide 100MHz by 100 to achieve a 1MHz sample clock
-	reg			adc_start;
-	reg	[6:0]		adc_divider;
 	initial	adc_start = 1;
 	initial	adc_divider = 0;
 	always @(posedge i_clk)
@@ -107,14 +126,10 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 		adc_start <= 0;
 	end
 
-	wire			adc_ign;
-	wire		adc_ce;
-	wire	[11:0]	adc_sample;
 	pmic adc(i_clk, adc_start, 1'b1, 1'b1, o_adc_csn, o_adc_sck, i_adc_miso,
 			{ adc_ign, adc_ce, adc_sample });
 
 	// Create a 1Hz LED flash from our sample clock
-	reg	[31:0]	adc_led_counter;
 	initial	adc_led_counter = 0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -122,24 +137,27 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	else if (adc_ce)
 		adc_led_counter <= adc_led_counter + 32'd4295;
 
-	wire		fil_ce;
-	wire	[19:0]	fil_sample;
 `ifdef	HIFREQUENCIES
+	localparam	NDOWN = 23,
+			FLTR_MSB=12;
 	subfildown #(.IW(12), .OW(20), .TW(12), .NDOWN(23), .LGNTAPS(10),
 			.INITIAL_COEFFS("subfildown.hex"))
 		fil(i_clk, i_reset, 1'b0, 12'h0, adc_ce, adc_sample[11:0],
 			fil_ce, fil_sample);
+
+	assign	fil_sample[20] == fil_sample[19];
 `else
+	localparam	NDOWN = 125,
+			FLTR_MSB=15;
 	// Low frequencies more appropriate for voice
-	subfildown #(.IW(12), .OW(21), .TW(12), .NDOWN(52), .LGNTAPS(10),
+	subfildown #(.IW(12), .OW(21), .TW(12), .NDOWN(NDOWN), .LGNTAPS(12),
 			.INITIAL_COEFFS("subfildownlow.hex"),
-			.SHIFT(4))
+			.SHIFT(0))
 		fil(i_clk, i_reset, 1'b0, 12'h0, adc_ce, adc_sample[11:0],
 			fil_ce, fil_sample);
 `endif
 
 	// We just downsampled by 23.  We should now have a 43kHz sample clock
-	reg	[31:0]	fltr_led_counter;
 	initial	fltr_led_counter = 0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -147,19 +165,17 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	else if (fil_ce)
 		fltr_led_counter <= fltr_led_counter + 32'd98_784;
 
-
-	reg		alt_ce;
-	reg	[4:0]	alt_countdown;
-
+`define	HANNING
+`ifdef	HANNING
 	initial	alt_countdown = 0;
 	always @(posedge i_clk)
 	if (i_reset)
 	begin
 		alt_ce <= 1'b0;
-		alt_countdown <= 5'd22;
+		alt_countdown <= NDOWN[6:0];
 	end else if (fil_ce)
 	begin
-		alt_countdown <= 5'd22;
+		alt_countdown <= { 1'b0, NDOWN[6:1] };
 		alt_ce <= 1'b0;
 	end else if (alt_countdown > 0)
 	begin
@@ -168,47 +184,61 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	end else
 		alt_ce <= 1'b0;
 
-	wire		pre_frame, pre_ce;
-	wire	[11:0]	pre_sample;
-`define	HANNING
-`ifdef	HANNING
 	windowfn #(.IW(12), .OW(12), .TW(12), .LGNFFT(10),
 		.OPT_FIXED_TAPS(1'b1),
 		.INITIAL_COEFFS("hanning.hex")) wndw(i_clk, i_reset,
-			1'b0, 12'h0, fil_ce, fil_sample[11:0], alt_ce,
+			1'b0, 12'h0, fil_ce, fil_sample[FLTR_MSB-1:FLTR_MSB-12], alt_ce,
 			pre_frame, pre_ce, pre_sample);
 `else
-	hires #(.IW(12), .OW(12), .TW(12), .LGNFFT(10),
+	initial	alt_countdown = 0;
+	always @(posedge i_clk)
+	if (i_reset)
+	begin
+		alt_ce <= 1'b0;
+		alt_countdown <= NDOWN[6:0];
+	end else if (fil_ce)
+	begin
+		alt_countdown <= NDOWN[6:0];
+		alt_ce <= 1'b0;
+	end else if (alt_countdown > 0)
+	begin
+		alt_countdown <= alt_countdown - 1'b1;
+		alt_ce <= (alt_countdown[0]) && (alt_countdown < 7'd66)
+				&& (alt_countdown[3:1] == 0);
+	end else
+		alt_ce <= 1'b0;
+
+	hires #(.IW(12), .OW(12), .TW(12),
+			.LGNFFT(10), .LGFLEN(2), .LGSTEPSZ(7),
 		.OPT_FIXED_TAPS(1'b1),
 		.INITIAL_COEFFS("f3.txt")) wndw(i_clk, i_reset,
-			1'b0, 12'h0, fil_ce, fil_sample[11:0], alt_ce,
-			pre_frame, pre_ce, pre_sample);
+			1'b0, 12'h0, fil_ce, fil_sample[FLTR_MSB-1:FLTR_MSB-12],
+			alt_ce, pre_frame, pre_ce, pre_sample);
 `endif
 
-	wire		fft_sync;
-	wire	[31:0]	fft_sample;
+
 
 	fftmain fftmaini(i_clk, i_reset, pre_ce, { pre_sample, 12'h0 },
 			fft_sample, fft_sync);
-
-	wire		raw_sync;
-	wire	[7:0]	raw_pixel;
 
 	logfn logi(i_clk, i_reset,
 			pre_ce, fft_sync, fft_sample[31:16], fft_sample[15:0],
 			raw_pixel, raw_sync);
 	//
 	//
-	wire	[AW-1:0]	baseoffset;
-	wire	[AW-1:0]	last_line_addr;
+	// Write the data to our memory area
+	//
 	assign	last_line_addr = BASEADDR
-			+ LINEWORDS * ({{(AW-LW-1){1'b0}}, LHEIGHT, 1'b0}-1);
+			+ LINEWORDS * ({{(AW-LW-1){1'b0}}, LHEIGHT, 1'b0}-2);
 	wrdata	#(.AW(AW), .LW(LW)) data2mem(i_clk, i_reset,
 			pre_ce, raw_pixel, raw_sync,
 			last_line_addr,LINEWORDS,LHEIGHT, baseoffset,
 			dat_cyc, dat_stb, dat_we, dat_addr, dat_pix, dat_sel,
 				dat_ack, dat_stall, dat_err);
-	
+
+	//
+	// Arbitrate access to memory: either the pixel writer or the pixel
+	// reader may have access to the memory, but never both
 	wbpriarbiter #(.AW(AW)) arb(i_clk,
 		dat_cyc, dat_stb, dat_we, dat_addr, dat_pix, dat_sel,
 			dat_ack, dat_stall, dat_err,
@@ -219,16 +249,7 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 			i_sdram_ack, i_sdram_stall, i_sdram_err);
 
 	assign	o_sdram_addr[26:AW] = 0;
-	/*
-	memdev #(LGMEM) memi(i_clk, i_reset,
-		mem_cyc, mem_stb, mem_we, mem_addr, mem_in, mem_sel,
-				mem_ack, mem_stall, mem_data);
-	assign	mem_err = 1'b0;
-	*/
 
-	wire	video_refresh;
-
-	wire	[AW-1:0]	read_offset;
 	assign	read_offset = baseoffset; // LINEWORDS - baseoffset;
 	hdmiframe #(.ADDRESS_WIDTH(AW), .FW(FW), .LW(LW)
 		) hdmii(i_clk, i_pixclk, i_reset, 1'b1,
@@ -262,7 +283,7 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	initial	clk_led = 0;
 	always @(posedge i_clk)
 	if (i_reset)
-		clk_led = 0;
+		clk_led <= 0;
 	else
 		clk_led <= clk_led + 32'd43;
 
@@ -304,9 +325,21 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	12'b10??_????_????: adc_mag <= 8'hff;
 	endcase
 
+	reg	adc_clipping;
+	always @(posedge i_clk)
+	if (adc_ce)
+		adc_clipping <= (adc_sample[11:10] == 2'b10)
+			||(adc_sample[11:10] == 2'b01);
+
+	reg	[28:0]	adc_clip_counter;
+	initial	adc_clip_counter = 29'h1fff_ffff;
+	always @(posedge i_clk)
+	if ((adc_clipping)||(!(&adc_clip_counter)))
+		adc_clip_counter <= adc_clip_counter + 1'b1;
+
 	reg	[7:0]	fil_mag;
 	always @(posedge i_clk)
-	casez(fil_sample[11:0])
+	casez(fil_sample[FLTR_MSB-1:FLTR_MSB-12])
 	12'b0000_0000_0000: fil_mag <= 8'h00;
 	12'b0000_0000_0001: fil_mag <= 8'h00;
 	12'b0000_0000_001?: fil_mag <= 8'h00;
@@ -342,6 +375,21 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	12'b10??_????_????: fil_mag <= 8'hff;
 	endcase
 
+	reg	fltr_clipping;
+	initial	fltr_clipping = 0;
+	always @(posedge i_clk)
+	if (fil_ce)
+		fltr_clipping <=
+			(&fil_sample[20:FLTR_MSB-1])&&(!fil_sample[FLTR_MSB-2])
+			||(fil_sample[20:FLTR_MSB-1]==0)
+					&&(fil_sample[FLTR_MSB-2]);
+
+	reg	[28:0]	fltr_clip_counter;
+	initial	fltr_clip_counter = 29'h1fff_ffff;
+	always @(posedge i_clk)
+	if ((fltr_clipping)||(!(&fltr_clip_counter)))
+		fltr_clip_counter <= fltr_clip_counter + 1'b1;
+
 	reg	[7:0]	pix_mag, pix_tmp;
 	always @(posedge i_clk)
 	if (raw_sync)
@@ -362,12 +410,24 @@ module	hdmiddr(i_clk, i_reset, i_pixclk,
 	// assign	o_led[1] = fltr_led_counter[31];
 	// assign	o_led[2] = frame_led_count[31];
 	// assign	o_led = adc_mag;
-	assign	o_led = fil_mag;
+	// assign	o_led = fil_mag;
 	// assign	o_led = pix_mag;
+
+	reg	[7:0]	clip_leds;
+	always @(posedge i_clk)
+	if (adc_clip_counter != 29'h1f_ff_ff_ff)
+		clip_leds <= {(8){adc_clip_counter[23]}};
+	else if (fltr_clip_counter != 29'h1f_ff_ff_ff)
+		clip_leds <= { 2'b11, {(6){fltr_clip_counter[25]}}};
+	else
+		clip_leds <= adc_mag;
+
+	assign	o_led = clip_leds;
 
 	// Make Verilator happy
 	// verilator lint_off UNUSED
-	wire	[10:0]	unused;
-	assign	unused = { fil_sample[19:12], pre_frame, adc_ign, video_refresh };
+	wire	[36:0]	unused;
+	assign	unused = { fil_sample[20], fil_sample[8:0], pre_frame, adc_ign, video_refresh,
+			adc_mag, fil_mag, pix_mag };
 	// verilator lint_on  UNUSED		
 endmodule

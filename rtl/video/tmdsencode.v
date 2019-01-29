@@ -4,14 +4,15 @@
 //
 // Project:	VideoZip, a ZipCPU SoC supporting video functionality
 //
-// Purpose:	
+// Purpose:	Take pixel/packet data, and encode them into a TMDS signal
+//		for HDMI transport.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2017, Gisselquist Technology, LLC
+// Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -52,7 +53,7 @@ module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
 	//	2'b01	Control period
 	//	2'b10	Data Island
 	//	2'b11	Pixel Data
-	//	
+	//
 
 	///////////////////////////////
 	//
@@ -238,7 +239,7 @@ module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
 	//	2'b01	Control period
 	//	2'b10	Data Island
 	//	2'b11	Pixel Data
-	//	
+	//
 	reg	[9:0]	brv_word;
 	always @(posedge i_clk)
 	case(s_dtype)

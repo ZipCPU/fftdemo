@@ -4,14 +4,16 @@
 //
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
-// Purpose:	
+// Purpose:	Generates the timing signals (not the clock) for an outgoing
+//		video signal, and then encodes the incoming pixels into
+//	an HDMI data stream.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -50,7 +52,10 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	localparam	BPC = BITS_PER_COLOR,
 			BITS_PER_PIXEL = 3 * BPC,
 			BPP = BITS_PER_PIXEL;
-	input	wire			i_pixclk, i_reset;
+	input	wire			i_pixclk;
+	// Verilator lint_off SYNCASYNCNET
+	input	wire			i_reset;
+	// Verilator lint_on SYNCASYNCNET
 	input	wire	[BPP-1:0]	i_rgb_pix;
 	//
 	input	wire	[HW-1:0]	i_hm_width, i_hm_porch,
@@ -72,7 +77,6 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	reg		first_frame;
 
 	wire			w_rd;
-	wire	[47:0]		f_vmode, f_hmode;
 	wire	[BPC-1:0]	i_red, i_grn, i_blu;
 	assign	i_red = i_rgb_pix[3*BPC-1:2*BPC];
 	assign	i_grn = i_rgb_pix[2*BPC-1:  BPC];
@@ -81,10 +85,13 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 	reg	[HW-1:0]	hpos;
 	reg	[VW-1:0]	vpos;
 	reg			hrd, vrd;
-
-
 	reg		pix_reset;
 	reg	[1:0]	pix_reset_pipe;
+`ifdef	FORMAL
+	wire	[47:0]		f_vmode, f_hmode;
+`endif
+
+
 	initial	{ pix_reset, pix_reset_pipe } = -1;
 	always @(posedge i_pixclk, posedge i_reset)
 	if (i_reset)
@@ -188,23 +195,6 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		pre_line <= 1'b1;
 	else
 		pre_line <= (vpos < i_vm_height);
-
-/*
-	reg	video_data_stall;
-
-	initial	video_data_stall = 1'b1;
-	always @(posedge i_pixclk)
-	if (i_reset)
-		video_data_stall <= 1'b1;
-	else if (!pre_line)
-		video_data_stall <= 1'b0;
-	else if (hpos < i_hm_width)
-		video_data_stall <= 1'b1;
-	else if (hpos > i_hm_width - 14 - (64+2+2+12) - 1)
-		video_data_stall <= 1'b1;
-	else
-		video_data_stall <= 1'b0;
-*/
 
 	initial	hdmi_type = GUARD;
 	always @(posedge i_pixclk)
@@ -468,12 +458,12 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		(DATA_PREAMBLE)
 		|=> (hdmi_type == DATA_ISLAND)[*64]);
 		##1 (hdmi_type == GUARD) [*2]);
-		
+
 	assert property (@(posedge i_clk)
 		disable iff (pix_reset)
 		((hdmi_type != DATA_ISLAND) throughout (not DATA_PREAMBLE))
 		|=> (hdmi_type != DATA_ISLAND));
-		
+
 `endif
 `endif
 endmodule

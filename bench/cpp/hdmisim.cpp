@@ -5,7 +5,7 @@
 // Project:	hdmisim, a Verilator based VGA simulator demonstration
 //
 // Purpose:	This is the main simulator source code file.  It uses gtkmm
-//		to create both an off-screen drawing area, as well as a 
+//		to create both an off-screen drawing area, as well as a
 //	DrawingArea to display the "image" sent from the Verilog code to the
 //	slave/output "monitor".
 //
@@ -18,7 +18,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -388,7 +388,7 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 					|((b & msk)<<(8-BITS_PER_COLOR));
 			if (m_data->m_img[yv][xv] != clr) {
 				m_data->m_img[yv][xv] = clr;
-	
+
 				// printf("\nIMG[%03d][%03d] = %03x\n",
 				//		yv, xv, clr);
 				m_gc->set_source_rgb(
@@ -397,7 +397,7 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 					(b&msk)/((double)msk));
 				m_gc->rectangle(xv, yv, 1, 1);
 				m_gc->fill();
-				
+
 				queue_draw_area(xv, yv, 1, 1);
 				// m_window->invalidate_rect(Gdk::Rectangle(
 				// 	xv, yv, 1, 1), true);

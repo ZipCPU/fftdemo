@@ -13,7 +13,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2018, Gisselquist Technology, LLC
+// Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -92,7 +92,7 @@ module	tmdstest(i_clk, i_dtype, i_ctl, i_color,
 			assert((dec_pix[13:12]==2'b00)
 				&&(dec_pix[9:8]  == $past(i_ctl,4)));
 		2'b10: // Data Island
-			assert((dec_pix[12])	
+			assert((dec_pix[12])
 				&&(dec_pix[11:8] == $past(i_color[3:0],4)));
 		2'b11: // Video data
 			assert((!dec_pix[13])&&(o_color == $past(i_color,4)));

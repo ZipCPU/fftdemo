@@ -4,14 +4,17 @@
 //
 // Project:	VideoZip, a ZipCPU SoC supporting video functionality
 //
-// Purpose:	
+// Purpose:	This is a Xilinx-specific I/O driver designed to convert
+//		the 10-bits data words of HDMI into a serial channel to be
+//	sent to the HDMI hardware.  It does this via an appropriate pair of
+//	OSERDES module.
 //
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2017, Gisselquist Technology, LLC
+// Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published

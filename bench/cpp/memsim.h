@@ -19,7 +19,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2015-2017, Gisselquist Technology, LLC
+// Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -47,14 +47,14 @@
 #define	MEMSIM_H
 
 class	MEMSIM {
-public:	
+public:
 	typedef	unsigned int	BUSW;
 	typedef	unsigned char	uchar;
 
 	BUSW	*m_mem, m_len, m_mask, m_head, m_tail, m_delay_mask, m_delay;
 	int	*m_fifo_ack;
 	BUSW	*m_fifo_data;
-	
+
 
 	MEMSIM(const unsigned int nwords, const unsigned int delay=27);
 	~MEMSIM(void);
