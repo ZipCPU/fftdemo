@@ -3,7 +3,7 @@
 ##
 ## Filename:	vversion.sh
 ##
-## Project:	vgasim, a Verilator based VGA simulator demonstration
+## Project:	FFT-DEMO, a verilator-based spectrogram display project
 ##
 ## Purpose:	To determine whether or not the verilator prefix for internal
 ##		variables is v__DOT__ or the name of the top level followed by
@@ -15,10 +15,10 @@
 ##
 ################################################################################
 ##
-## Copyright (C) 2017, Gisselquist Technology, LLC
+## Copyright (C) 2017-2019, Gisselquist Technology, LLC
 ##
 ## This program is free software (firmware): you can redistribute it and/or
-## modify it under the terms of  the GNU General Public License as published
+## modify it under the terms of the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
 ## your option) any later version.
 ##

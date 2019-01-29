@@ -2,7 +2,7 @@
 //
 // Filename:	videomode.h
 //
-// Project:	vgasim, a Verilator based VGA simulator demonstration
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	In order to facilitate being able to handle multiple different
 //		video mode simulations, this class encapsulates both the
@@ -21,7 +21,7 @@
 // Copyright (C) 2017-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //

@@ -2,7 +2,7 @@
 //
 // Filename: 	micnco.h
 //
-// Project:	WBPMIC, wishbone control of a MEMs PMod MIC
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	To define the class that will provide a simulated A/D input for
 //		testing
@@ -15,7 +15,7 @@
 // Copyright (C) 2017-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //

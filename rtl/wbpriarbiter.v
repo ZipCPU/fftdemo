@@ -2,7 +2,7 @@
 //
 // Filename: 	wbpriarbiter.v
 //
-// Project:	Zip CPU -- a small, lightweight, RISC CPU soft core
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This is a priority bus arbiter.  It allows two separate wishbone
 //		masters to connect to the same bus, while also guaranteeing

@@ -2,7 +2,7 @@
 //
 // Filename:	hdmisim.cpp
 //
-// Project:	hdmisim, a Verilator based VGA simulator demonstration
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This is the main simulator source code file.  It uses gtkmm
 //		to create both an off-screen drawing area, as well as a
@@ -21,7 +21,7 @@
 // Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //

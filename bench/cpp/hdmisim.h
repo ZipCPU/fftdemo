@@ -2,7 +2,7 @@
 //
 // Filename:	hdmisim.h
 //
-// Project:	vgasim, a Verilator based VGA simulator demonstration
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	
 //
@@ -14,7 +14,7 @@
 // Copyright (C) 2018-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //

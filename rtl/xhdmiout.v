@@ -2,7 +2,7 @@
 //
 // Filename: 	xhdmiout.v
 //
-// Project:	VideoZip, a ZipCPU SoC supporting video functionality
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This is a Xilinx-specific I/O driver designed to convert
 //		the 10-bits data words of HDMI into a serial channel to be

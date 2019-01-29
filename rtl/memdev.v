@@ -2,7 +2,7 @@
 //
 // Filename:	memdev.v
 //
-// Project:	ZBasic, a generic toplevel impl using the full ZipCPU
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This file is really simple: it creates an on-chip memory,
 //		accessible via the wishbone bus, that can be used in this
@@ -21,7 +21,7 @@
 // Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //

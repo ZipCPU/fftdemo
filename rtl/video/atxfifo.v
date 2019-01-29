@@ -2,7 +2,7 @@
 //
 // Filename: 	atxfifo.v
 //
-// Project:	afifo, A formal proof of Cliff Cummings' asynchronous FIFO
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This file defines the behaviour of an asynchronous FIFO.
 //		It was originally copied from a paper by Clifford E. Cummings

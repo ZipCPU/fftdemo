@@ -2,7 +2,7 @@
 //
 // Filename:	fftmain.v
 //
-// Project:	A General Purpose Pipelined FFT Implementation
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This is the main module in the General Purpose FPGA FFT
 //		implementation.  As such, all other modules are subordinate
@@ -44,7 +44,7 @@
 // Copyright (C) 2015-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //

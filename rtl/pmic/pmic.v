@@ -2,7 +2,7 @@
 //
 // Filename: 	smpladc.v
 //
-// Project:	WBPMIC, wishbone control of a MEMs PMod MIC
+// Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	Reads a sample from a SPI-controlled ADC, such as the Analog
 //		Devices AD7476A.  In particular, the source was designed to
@@ -43,10 +43,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2017-2018, Gisselquist Technology, LLC
+// Copyright (C) 2017-2019, Gisselquist Technology, LLC
 //
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
