@@ -46,11 +46,11 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <Vhdmimain.h>
 #include <verilated_vcd_c.h>
 #include "tbclock.h"
 
 #define	TBASSERT(TB,A) do { if (!(A)) { (TB).closetrace(); } assert(A); } while(0);
+#define	TRACE_VCD
 
 template <class VA>	class TESTB {
 public:

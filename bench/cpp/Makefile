@@ -73,7 +73,7 @@ all:	main_tb ddr_tb hexf
 SOURCES := main_tb.cpp vgasim.cpp
 HEADERS := image.h testb.h vgasim.h micnco.h videomode.h image.cpp
 #
-PROGRAMS := main_tb
+PROGRAMS := main_tb ddr_tb
 # Now the return to the "all" target, and fill in some details
 all:	$(PROGRAMS)
 

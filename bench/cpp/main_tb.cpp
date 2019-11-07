@@ -87,9 +87,9 @@ public:
 				&TESTBENCH::on_tick));
 	}
 
-	void	trace(const char *vcd_trace_file_name) {
+	void	openvcd(const char *vcd_trace_file_name) {
 		fprintf(stderr, "Opening TRACE(%s)\n", vcd_trace_file_name);
-		opentrace(vcd_trace_file_name);
+		openvcd(vcd_trace_file_name);
 	}
 
 	void	close(void) {
@@ -139,7 +139,7 @@ int	main(int argc, char **argv) {
 
 	if (false) {
 		printf("Writing a trace file\n");
-		tb->opentrace("fftdemo.vcd");
+		tb->openvcd("fftdemo.vcd");
 	}
 	Gtk::Main::run(tb->m_win);
 
