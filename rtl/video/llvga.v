@@ -51,7 +51,10 @@ module	llvga(i_pixclk, i_reset,
 	localparam	BPC = BITS_PER_COLOR,
 			BITS_PER_PIXEL = 3 * BPC,
 			BPP = BITS_PER_PIXEL;
-	input	wire			i_pixclk, i_reset;
+	input	wire			i_pixclk;
+	// Verilator lint_off SYNCASYNCNET
+	input	wire			i_reset;
+	// Verilator lint_on  SYNCASYNCNET
 	input	wire	[BPP-1:0]	i_rgb_pix;
 	//
 	input	wire	[HW-1:0]		i_hm_width, i_hm_porch,
