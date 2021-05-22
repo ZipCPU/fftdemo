@@ -1,4 +1,4 @@
-logfn
-wrdata
-tmdstest
-genhdmi
+logfn_*/
+wrdata_*/
+tmdstest_*/
+genhdmi_*/

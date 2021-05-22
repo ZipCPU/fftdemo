@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	gtmap.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This is my favorite false color map, one that I built years
@@ -14,9 +14,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2018-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -31,34 +31,42 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-module	gtmap(i_pixel, o_r, o_g, o_b);
-	input	wire	[7:0]	i_pixel;
-	output	reg	[7:0]	o_r, o_g, o_b;
+// }}}
+module	gtmap (
+		// {{{
+		input	wire	[7:0]	i_pixel,
+		output	reg	[7:0]	o_r, o_g, o_b
+		// }}}
+	);
 
+	// Local declarations
+	// {{{
 	reg	[7:0]	rtbl	[0:255];
 	reg	[7:0]	gtbl	[0:255];
 	reg	[7:0]	btbl	[0:255];
+	// }}}
 
 	always @(*)
+	begin
 		o_r = rtbl[i_pixel];
-
-	always @(*)
 		o_g = gtbl[i_pixel];
-
-	always @(*)
 		o_b = btbl[i_pixel];
-
-	// Now define the tables themselves
+	end
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Now define the color table(s) themselves
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
 	initial begin
 	rtbl[  0] = 8'h00; gtbl[  0] = 8'h00; btbl[  0] = 8'h00;
 	rtbl[  1] = 8'h00; gtbl[  1] = 8'h00; btbl[  1] = 8'h00;
@@ -316,5 +324,5 @@ module	gtmap(i_pixel, o_r, o_g, o_b);
 	rtbl[253] = 8'hff; gtbl[253] = 8'hff; btbl[253] = 8'hff;
 	rtbl[254] = 8'hff; gtbl[254] = 8'hff; btbl[254] = 8'hff;
 	end
-
+	// }}}
 endmodule

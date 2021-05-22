@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	./rtl/toplevel.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This is the "top-level" of the implementable design (HDMI+DDR).
@@ -13,9 +13,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -30,10 +30,10 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -48,7 +48,7 @@
 // @TOP.PORTLIST is absent.  For those peripherals that don't need
 // any top level logic, the @MAIN.PORTLIST should be sufficent,
 // so the @TOP.PORTLIST key may be left undefined.
-//
+// }}}
 module	toplevel(i_clk,
 		// SDRAM I/O port wires
 		ddr3_ck_p, ddr3_ck_n,

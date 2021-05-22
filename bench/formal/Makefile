@@ -1,20 +1,20 @@
 ###############################################################################
 ##
 ## Filename:	Makefile
-##
+## {{{
 ## Project:	FFT-DEMO, a verilator-based spectrogram display project
 ##
-## Purpose:	This is the master project makefilet exist in bench/cpp.
-##
-## Targets:	The default target, all, builds all subdirectory targets.
+## Purpose:	Script the building of the various formal proofs used in this
+##		design.  Modules imported from other projects may have proofs
+##	not tested here.  See their respective projects for their proofs.
 ##
 ## Creator:	Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
 ##
 ################################################################################
-##
-## Copyright (C) 2018-2020, Gisselquist Technology, LLC
-##
+## }}}
+## Copyright (C) 2018-2021, Gisselquist Technology, LLC
+## {{{
 ## This program is free software (firmware): you can redistribute it and/or
 ## modify it under the terms of  the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
@@ -29,25 +29,46 @@
 ## with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 ## target there if the PDF file isn't present.)  If not, see
 ## <http://www.gnu.org/licenses/> for a copy.
-##
+## }}}
 ## License:	GPL, v3, as defined and found on www.gnu.org,
+## {{{
 ##		http://www.gnu.org/licenses/gpl.html
 ##
 ################################################################################
 ##
-##
-all: benchcpp
-SUBMAKE := make --no-print-directory -C
+## }}}
+all: wrdata tmdstest logfn # genhdmi
 
-rtld:
-	$(SUBMAKE) rtl
+.PHONY: genhdmi
+## {{{
+genhdmi: genhdmi_prf/PASS
+genhdmi_prf/PASS: genhdmi.sby ../../rtl/video/tmdsencode.v ../../rtl/video/genhdmi.v
+	sby -f genhdmi.sby prf
+## }}}
 
-benchcpp: rtld
-	$(SUBMAKE) bench/cpp
+.PHONY: logfn
+## {{{
+logfn: logfn_prf/PASS
+logfn_prf/PASS: logfn.sby ../../rtl/fft/logfn.v
+	sby -f logfn.sby prf
+## }}}
 
-formal: rtld
-	$(SUBMAKE) formal
+.PHONY: tmdstest
+## {{{
+tmdstest: tmdstest_prf/PASS
+tmdstest_prf/PASS: tmdstest.sby tmdstest.v ../../rtl/video/tmdsencode.v ../../rtl/video/tmdsdecode.v
+	sby -f tmdstest.sby prf
+## }}}
+
+.PHONY: wrdata
+## {{{
+wrdata: wrdata_prf/PASS
+wrdata_prf/PASS: wrdata.sby ../../rtl/wrdata.v ../../rtl/sfifo.v fwb_master.v
+	sby -f wrdata.sby prf
+## }}}
 
 clean:
-	$(SUBMAKE) rtl       clean
-	$(SUBMAKE) bench/cpp clean
+	rm -rf wrdata_*/
+	rm -rf genhdmi_*/
+	rm -rf tmdstest_*/
+	rm -rf logfn_*/

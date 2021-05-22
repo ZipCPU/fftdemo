@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	mmrmap.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	One of several false-color mapping functions
@@ -15,27 +15,35 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-module	mmrmap(i_pixel, o_r, o_g, o_b);
-	input	wire	[7:0]	i_pixel;
-	output	reg	[7:0]	o_r, o_g, o_b;
+// }}}
+module	mmrmap(
+		// {{{
+		input	wire	[7:0]	i_pixel,
+		output	reg	[7:0]	o_r, o_g, o_b
+		// }}}
+	);
 
+	// Local declarations
+	// {{{
 	reg	[7:0]	rtbl	[0:255];
 	reg	[7:0]	gtbl	[0:255];
 	reg	[7:0]	btbl	[0:255];
+	// }}}
 
 	always @(*)
+	begin
 		o_r = rtbl[i_pixel];
-
-	always @(*)
 		o_g = gtbl[i_pixel];
-
-	always @(*)
 		o_b = btbl[i_pixel];
-
-	// Now define the tables themselves
+	end
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Now define the color table(s) themselves
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
 	initial begin
 	rtbl[  0] = 8'h00; gtbl[  0] = 8'h00; btbl[  0] = 8'h00;
 	rtbl[  1] = 8'h00; gtbl[  1] = 8'h00; btbl[  1] = 8'h00;
@@ -293,5 +301,5 @@ module	mmrmap(i_pixel, o_r, o_g, o_b);
 	rtbl[253] = 8'hfc; gtbl[253] = 8'hfc; btbl[253] = 8'hfa;
 	rtbl[254] = 8'hfd; gtbl[254] = 8'hfd; btbl[254] = 8'hfc;
 	end
-
+	// }}}
 endmodule

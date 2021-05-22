@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	smpladc.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	Reads a sample from a SPI-controlled ADC, such as the Analog
@@ -42,9 +42,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -59,31 +59,40 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-module	pmic(i_clk, i_request, i_rd, i_en, o_csn, o_sck, i_miso, o_data);
-	parameter [8:0]	CKPCK = 3;
-	input	wire		i_clk, i_request, i_rd, i_en;
-	output	wire		o_csn;
-	output	reg		o_sck;
-	input	wire		i_miso;
-	output	wire	[13:0]	o_data;
+// }}}
+module	pmic #(
+		// {{{
+		parameter [8:0]	CKPCK = 3
+		// }}}
+	) (
+		// {{{
+		input	wire		i_clk, i_request, i_rd, i_en,
+		output	wire		o_csn,
+		output	reg		o_sck,
+		input	wire		i_miso,
+		output	wire	[13:0]	o_data
+		// }}}
+	);
 
-
+	// Local declarations
+	// {{{
 	reg	[8:0]	r_clk;
 	reg		active, last_en, valid_stb, zclk, r_valid, hclk;
 	reg	[4:0]	m_clk;
 	reg	[10:0]	r_data;
 	reg	[11:0]	r_output;
+	// }}}
 
+	// active, last_en, valid_stb, m_clk, zclk, o_sck, r_clk, hclk
+	// {{{
 	initial	active    = 1'b0;
 	initial	last_en   = 1'b0;
 	initial	valid_stb = 1'b0;
@@ -94,6 +103,8 @@ module	pmic(i_clk, i_request, i_rd, i_en, o_csn, o_sck, i_miso, o_data);
 	initial	hclk      = 1'b0;
 	always @(posedge i_clk)
 	begin
+		// last_en, active
+		// {{{
 		if (r_clk == CKPCK-1)
 		begin
 			if ((i_request)&&(!active))
@@ -104,14 +115,20 @@ module	pmic(i_clk, i_request, i_rd, i_en, o_csn, o_sck, i_miso, o_data);
 			active <= 1'b0;
 		else if ((hclk)&&(o_sck)&&(m_clk >= 5'h10))
 			active <= 1'b0;
+		// }}}
 
 		valid_stb <= ((hclk)&&(o_sck)&&(m_clk >= 5'h10));
 
+		// m_clk
+		// {{{
 		if (!active)
 			m_clk <= 5'h0;
 		else if (zclk)
 			m_clk <= m_clk + 1'b1;
+		// }}}
 
+		// o_sck, zclk (zero clocks), hclk (halfway cycle)
+		// {{{
 		zclk <= 1'b0;
 		hclk <= 1'b0;	// hclk is the half clock
 		if ((active)||(!o_sck))
@@ -131,28 +148,46 @@ module	pmic(i_clk, i_request, i_rd, i_en, o_csn, o_sck, i_miso, o_data);
 				r_clk <= CKPCK-1;
 			o_sck <= 1'b1;
 		end
+		// }}}
 	end
 	assign	o_csn = !active;
+	// }}}
 
+	// r_valid
+	// {{{
 	initial	r_valid = 1'b0;
 	always @(posedge i_clk)
-		if (i_rd)
-			r_valid <= (valid_stb);
-		else
-			r_valid <= (r_valid)||(valid_stb);
+	if (i_rd)
+		r_valid <= (valid_stb);
+	else
+		r_valid <= (r_valid)||(valid_stb);
+	// }}}
 
-	// Grab the value on the rise
+	// r_data -- Grab the value on the rise
+	// {{{
 	always @(posedge i_clk)
-		if ((hclk)&&(!zclk))
-			r_data <= { r_data[9:0], i_miso };
+	if ((hclk)&&(!zclk))
+		r_data <= { r_data[9:0], i_miso };
+	// }}}
 
+	// r_output
+	// {{{
 	initial	r_output = 0;
 	always @(posedge i_clk)
-		if ((hclk)&&(o_sck)&&(m_clk >= 5'h10))
-			r_output <= { r_data[10:0], i_miso };
+	if ((hclk)&&(o_sck)&&(m_clk >= 5'h10))
+		r_output <= { r_data[10:0], i_miso };
+	// }}}
 
 	assign	o_data = { !last_en, r_valid, r_output };
-
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 `ifdef	SMPLADC
 `define	ASSUME	assume
@@ -316,5 +351,6 @@ module	pmic(i_clk, i_request, i_rd, i_en, o_csn, o_sck, i_miso, o_data);
 		##1 (r_valid)&&(o_data[11:0] == f_data));
 
 `endif
+// }}}
 endmodule
 

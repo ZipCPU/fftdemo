@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	llvga.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	A lower-level VGA controller
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2017-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2017-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -27,88 +27,105 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
-module	llvga(i_pixclk, i_reset,
+// }}}
+module	llvga #(
+		// {{{
+		parameter	BITS_PER_COLOR = 4,
+				HW=12,VW=12,
+		localparam	BPC = BITS_PER_COLOR,
+				BITS_PER_PIXEL = 3 * BPC,
+				BPP = BITS_PER_PIXEL
+		// }}}
+	) (
+		// {{{
+		input	wire			i_pixclk,
+		// Verilator lint_off SYNCASYNCNET
+		input	wire			i_reset,
+		// Verilator lint_on  SYNCASYNCNET
 		// External connections
-		i_rgb_pix,
+		input	wire	[BPP-1:0]	i_rgb_pix,
 		// Video mode information
-		i_hm_width,  i_hm_porch, i_hm_synch, i_hm_raw,
-		i_vm_height, i_vm_porch, i_vm_synch, i_vm_raw,
-		o_rd, o_newline, o_newframe,
+		input	wire	[HW-1:0]		i_hm_width, i_hm_porch,
+							i_hm_synch, i_hm_raw,
+		input	wire	[VW-1:0]		i_vm_height, i_vm_porch,
+							i_vm_synch, i_vm_raw,
+		// Pixel stream control
+		// {{{
+		output	reg			o_rd, o_newline, o_newframe,
+		// }}}
 		// VGA connections
-		o_vsync, o_hsync, o_red, o_grn, o_blu);
-	parameter	BITS_PER_COLOR = 4,
-			HW=12,VW=12;
-	localparam	BPC = BITS_PER_COLOR,
-			BITS_PER_PIXEL = 3 * BPC,
-			BPP = BITS_PER_PIXEL;
-	input	wire			i_pixclk;
-	// Verilator lint_off SYNCASYNCNET
-	input	wire			i_reset;
-	// Verilator lint_on  SYNCASYNCNET
-	input	wire	[BPP-1:0]	i_rgb_pix;
-	//
-	input	wire	[HW-1:0]		i_hm_width, i_hm_porch,
-						i_hm_synch, i_hm_raw;
-	input	wire	[VW-1:0]		i_vm_height, i_vm_porch,
-						i_vm_synch, i_vm_raw;
-	// input	[3:0]	i_red, i_grn, i_blu;
-	output	reg			o_rd, o_newline, o_newframe;
-	output	reg			o_vsync, o_hsync;
-	output	reg	[BPC-1:0]	o_red, o_grn, o_blu;
+		// {{{
+		output	reg			o_vsync, o_hsync,
+		output	reg	[BPC-1:0]	o_red, o_grn, o_blu
+		// }}}
+		// }}}
+	);
 
-
+	// Local declarations
+	// {{{
 	wire	[BPC-1:0]	i_red, i_grn, i_blu;
+	reg		s_reset;
+	reg	[1:0]	reset_pipe;
+	reg	[HW-1:0]	hpos;
+	reg	[VW-1:0]	vpos;
+	reg		hrd, vrd;
+	reg	first_frame;
+	wire	w_rd;
+
+
 	assign	i_red = i_rgb_pix[3*BPC-1:2*BPC];
 	assign	i_grn = i_rgb_pix[2*BPC-1:  BPC];
 	assign	i_blu = i_rgb_pix[  BPC-1:0];
 
-	reg		s_reset;
-	reg	[1:0]	reset_pipe;
+	// }}}
 
+	// s_reset, reset_pipe
+	// {{{
 	initial	{ s_reset, reset_pipe } = -1;
 	always @(posedge i_pixclk, posedge i_reset)
 	if (i_reset)
 		{ s_reset, reset_pipe } <= -1;
 	else
 		{ s_reset, reset_pipe } <= { reset_pipe, 1'b0 };
+	// }}}
 
-	reg	[HW-1:0]	hpos;
-	reg	[VW-1:0]	vpos;
-	reg		hrd, vrd;
-
+	// hpos, o_newline, o_hsync, hrd
+	// {{{
 	initial	hpos       = 0;
 	initial	o_newline  = 0;
 	initial	o_hsync = 0;
 	initial	hrd = 1;
 	always @(posedge i_pixclk)
-		if (s_reset)
-		begin
+	if (s_reset)
+	begin
+		hpos <= 0;
+		o_newline <= 1'b0;
+		o_hsync <= 1'b0;
+		hrd <= 1;
+	end else
+	begin
+		hrd <= (hpos < i_hm_width-2)
+				||(hpos >= i_hm_raw-2);
+		if (hpos < i_hm_raw-1'b1)
+			hpos <= hpos + 1'b1;
+		else
 			hpos <= 0;
-			o_newline <= 1'b0;
-			o_hsync <= 1'b0;
-			hrd <= 1;
-		end else
-		begin
-			hrd <= (hpos < i_hm_width-2)
-					||(hpos >= i_hm_raw-2);
-			if (hpos < i_hm_raw-1'b1)
-				hpos <= hpos + 1'b1;
-			else
-				hpos <= 0;
-			o_newline <= (hpos == i_hm_width-2);
-			o_hsync <= (hpos >= i_hm_porch-1'b1)&&(hpos<i_hm_synch-1'b1);
-		end
+		o_newline <= (hpos == i_hm_width-2);
+		o_hsync <= (hpos >= i_hm_porch-1'b1)&&(hpos<i_hm_synch-1'b1);
+	end
+	// }}}
 
+	// o_newframe
+	// {{{
 	always @(posedge i_pixclk)
 	if (s_reset)
 		o_newframe <= 1'b0;
@@ -116,7 +133,10 @@ module	llvga(i_pixclk, i_reset,
 		o_newframe <= 1'b1;
 	else
 		o_newframe <= 1'b0;
+	// }}}
 
+	// vpos, o_vsync
+	// {{{
 	initial	vpos = 0;
 	initial	o_vsync = 1'b0;
 	always @(posedge i_pixclk)
@@ -139,21 +159,27 @@ module	llvga(i_pixclk, i_reset,
 		// the first pixel clock is valid.
 		o_vsync <= (vpos >= i_vm_porch-1'b1)&&(vpos<i_vm_synch-1'b1);
 	end
+	// }}}
 
+	// vrd
+	// {{{
 	initial	vrd = 1'b1;
 	always @(posedge i_pixclk)
 		vrd <= (vpos < i_vm_height)&&(!s_reset);
+	// }}}
 
-	reg	first_frame;
-
+	// first_frame
+	// {{{
 	initial	first_frame = 1'b1;
 	always @(posedge i_pixclk)
 	if (s_reset)
 		first_frame <= 1'b1;
 	else if (o_newframe)
 		first_frame <= 1'b0;
+	// }}}
 
-	wire	w_rd;
+	// o_rd, w_rd
+	//  {{{
 	assign	w_rd = (hrd)&&(vrd)&&(!first_frame);
 
 	initial	o_rd = 1'b0;
@@ -162,7 +188,10 @@ module	llvga(i_pixclk, i_reset,
 		o_rd <= 1'b0;
 	else
 		o_rd <= w_rd;
+	// }}}
 
+	// o_red, o_grn, o_blu
+	// {{{
 	always @(posedge i_pixclk)
 	if (w_rd)
 	begin
@@ -174,10 +203,16 @@ module	llvga(i_pixclk, i_reset,
 		o_grn <= 0;
 		o_blu <= 0;
 	end
-
+	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 // Formal properties for verification purposes
-//
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 	reg	f_past_valid;
 	initial	f_past_valid = 1'b0;
@@ -293,5 +328,5 @@ module	llvga(i_pixclk, i_reset,
 			assert(!o_newframe);
 	end
 `endif
+// }}}
 endmodule
-

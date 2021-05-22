@@ -1,10 +1,10 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	rtl/wrdata.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
-// Purpose:	This is the memory controller that handles writing pixels values
+// Purpose:	This is the memory controller that handles taking pixels values
 //		from the FFT, and writing them to RAM.  It is designed to
 //	support a spectrogram that write a vertical bar of new data to the
 //	right of the screen.  To support screen scrolling, the vertical bar
@@ -12,14 +12,13 @@
 //	is given for the video controller to read from an adjustable memory
 //	starting location.
 //
-//
 // Creator:	Dan Gisselquist, Ph.D.
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2018-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -34,49 +33,55 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-//
-module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
-	i_base, i_lw, i_height,
-	o_offset,
-	o_wb_cyc, o_wb_stb, o_wb_we, o_wb_addr, o_wb_data, o_wb_sel,
-	i_wb_ack, i_wb_stall, i_wb_err);
-	parameter	AW=20, DW=32, LW=12;
+// }}}
+module	wrdata #(
+		// {{{
+		parameter	AW=20, DW=32, LW=12,
 `ifdef	FORMAL
-	localparam	WB_DEPTH = 2;
+		localparam	WB_DEPTH = 2
 `else
-	localparam	WB_DEPTH = 5;
+		localparam	WB_DEPTH = 5
 `endif
+		// }}}
+	) (
+		// {{{
+		input	wire			i_clk, i_reset,
+		// FFT inputs
+		// {{{
+		input	wire			i_ce,
+		input	wire	[7:0]		i_pixel,
+		input	wire			i_sync, // == start of next FFT
+		// }}}
+		// Framebuffer data
+		// {{{
+		input	wire	[AW-1:0]	i_base, i_lw,
+		input	wire	[LW-1:0]	i_height,
+		//
+		output	reg	[AW-1:0]	o_offset,
+		// }}}
+		// Wishbone connections
+		// {{{
+		output	reg			o_wb_cyc,
+		output	wire			o_wb_stb,o_wb_we,
+		output	wire	[AW-1:0]	o_wb_addr,
+		output	wire	[DW-1:0]	o_wb_data,
+		output	wire	[DW/8-1:0]	o_wb_sel,
+		//
+		input	wire			i_wb_ack, i_wb_stall, i_wb_err
+		// }}}
+		// }}}
+	);
 
-	//
-	input	wire	i_clk, i_reset;
-	//
-	input	wire			i_ce;
-	input	wire	[7:0]		i_pixel;
-	input	wire			i_sync;
-	//
-	input	wire	[AW-1:0]	i_base, i_lw;
-	input	wire	[LW-1:0]	i_height;
-	//
-	output	reg	[AW-1:0]	o_offset;
-	//
-	output	reg			o_wb_cyc;
-	output	wire			o_wb_stb, o_wb_we;
-	output	wire	[AW-1:0]	o_wb_addr;
-	output	wire	[DW-1:0]	o_wb_data;
-	output	wire	[DW/8-1:0]	o_wb_sel;
-	//
-	input	wire			i_wb_ack, i_wb_stall, i_wb_err;
-
+	// Local declarations
+	// {{{
 	reg			fif_ce, last_ce, r_offscreen;
 	reg	[AW-1:0]	fif_addr;
 	reg	[DW-1:0]	fif_data;
@@ -93,12 +98,19 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 	reg	[AW+1:0]	offset_plus_one;
 	reg			r_wb_stb, last_ack;
 
+	wire	fif_wfull, fif_rempty, fif_err;
+	// }}}
 
+	// r_height
+	// {{{
 	initial	r_height = 480;
 	always @(posedge i_clk)
 	if ((i_reset)||((i_ce)&&(i_sync)))
 		r_height <= i_height;
+	// }}}
 
+	// fif_addr, r_lw, fif_ce, last_ce, lno, r_offscreen
+	// {{{
 	initial	fif_addr = 0;
 	initial	r_lw     = 4;
 	initial	fif_ce   = 0;
@@ -152,11 +164,16 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		last_ce <= 1'b0;
 	end else
 		fif_ce <= 1'b0;
+	// }}}
 
-
+	// offset_plus_one
+	// {{{
 	always @(*)
 		offset_plus_one = r_offset + 1'b1;
+	// }}}
 
+	// next_offset
+	// {{{
 	initial	next_offset = 0;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -166,16 +183,26 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		next_offset <= 0;
 	else
 		next_offset <= r_offset + 1'b1;
+	// }}}
 
+	// r_offset
+	// {{{
 	initial	r_offset = 0;
 	always @(posedge i_clk)
 	if (i_reset)
 		r_offset <= 0;
 	else if ((i_ce)&&(i_sync))
 		r_offset <= next_offset;
+	// }}}
 
+	// next_offset_plus_two
+	// {{{
 	always @(*)
 		next_offset_plus_two = next_offset[AW+1:2] + 2;
+	// }}}
+
+	// o_offset
+	// {{{
 	initial	o_offset = 1;
 	always @(posedge i_clk)
 	if (i_reset)
@@ -188,21 +215,25 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		else
 			o_offset <= next_offset_plus_two;
 	end
-
-	wire	fif_wfull, fif_rempty, fif_err;
+	// }}}
 
 `ifdef	FORMAL
 	sfifo	#(AW+DW+(DW/8), 2)
 `else
 	sfifo	#(AW+DW+(DW/8), 5)
 `endif
-		memfifoi(i_clk,i_reset, fif_ce, { fif_addr, fif_data, fif_sel },
-			fif_wfull,
-			(o_wb_stb)&&(!i_wb_stall),
-				{ o_wb_addr, o_wb_data, o_wb_sel },
-				fif_rempty, fif_err);
+	memfifoi(
+		// {{{
+		i_clk,i_reset, fif_ce, { fif_addr, fif_data, fif_sel },
+		fif_wfull,
+		(o_wb_stb)&&(!i_wb_stall),
+			{ o_wb_addr, o_wb_data, o_wb_sel },
+			fif_rempty, fif_err
+		// }}}
+	);
 
-
+	// o_wb_cyc, r_wb_stb
+	// {{{
 	initial	o_wb_cyc = 0;
 	initial	r_wb_stb = 0;
 	always @(posedge i_clk)
@@ -220,7 +251,10 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		if ((!r_wb_stb)&&(i_wb_ack)&&(last_ack))
 			o_wb_cyc <= 1'b0;
 	end
-		
+	// }}}
+
+	// pending, wb_full, last_ack
+	// {{{
 	initial	pending  = 0;
 	initial	wb_full  = 0;
 	initial	last_ack = 0;
@@ -243,15 +277,27 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 			end
 		default: begin end
 		endcase
+	// }}}
 
 	assign	o_wb_stb = (r_wb_stb)&&(!fif_rempty)&&(!wb_full);
 	assign	o_wb_we  = 1'b1;
 
+	// Keep Verilator happy
+	// {{{
 	// verilator lint_off UNUSED
-	wire	[1:0] unused;
-	assign	unused = { fif_wfull, fif_err };
+	wire	unused;
+	assign	unused = &{ 1'b0, fif_wfull, fif_err };
 	// verilator lint_on  UNUSED
-
+	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 	reg	f_past_valid;
 	initial	f_past_valid = 1'b0;
@@ -299,7 +345,7 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		assert(f_outstanding == {1'b0,pending});
 
 	always @(*)
-		assert(f_outstanding < {1'b1,{(WB_DEPTH){1'b0}}});
+		assert(f_outstanding < {1'b1,{(WB_DEPTH){1'b0}} });
 
 	always @(*)
 	if (o_wb_cyc)
@@ -350,4 +396,5 @@ module	wrdata(i_clk, i_reset, i_ce, i_pixel, i_sync,
 		assert(o_offset < r_lw);
 	end
 `endif
+// }}}
 endmodule

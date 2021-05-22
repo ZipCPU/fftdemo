@@ -1,3 +1,6 @@
+[tasks]
+prf
+
 [options]
 mode prove
 
@@ -10,5 +13,5 @@ read -formal genhdmi.v
 prep -top genhdmi
 
 [files]
-../../rtl/tmdsencode.v
-../../rtl/genhdmi.v
+../../rtl/video/tmdsencode.v
+../../rtl/video/genhdmi.v

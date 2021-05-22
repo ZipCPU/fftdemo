@@ -26,9 +26,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -52,7 +52,7 @@
 //
 //
 `default_nettype	none
-//
+// }}}
 module	shiftaddmpy(i_clk, i_ce, i_a, i_b, o_r);
 	parameter	AWIDTH=16,BWIDTH=20;
 	input	wire				i_clk, i_ce;

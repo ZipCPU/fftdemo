@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	tmdsencode.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	Take pixel/packet data, and encode them into a TMDS signal
@@ -11,9 +11,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -28,54 +28,85 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
-	input	wire		i_clk;
-	input	wire	[1:0]	i_dtype;
-	input	wire	[1:0]	i_ctl;
-	input	wire	[3:0]	i_aux;
-	input	wire	[7:0]	i_data;
-	output	wire	[9:0]	o_word;
+// }}}
+module	tmdsencode #(
+		parameter [1:0]	CHANNEL = 2'b00
+	) (
+		// {{{
+		input	wire		i_clk,
+		input	wire	[1:0]	i_dtype,
+		input	wire	[1:0]	i_ctl,
+		input	wire	[3:0]	i_aux,
+		input	wire	[7:0]	i_data,
+		output	wire	[9:0]	o_word
+		// }}}
+	);
 
-	parameter [1:0]	CHANNEL = 2'b00;
+	// Local declarations
+	// {{{
+	reg	[9:0]	guard_word;
+	reg	[1:0]	r_dtype;
+	reg	[9:0]	ctrl_word;
+	reg	[1:0]	r_ctl;
+	reg	[9:0]	aux_word;
+	reg	[3:0]	r_aux;
+	reg	[3:0]	ones, ones_counter;
+	reg	[3:0]	qm_ones, qm_ones_counter;
+	reg	[8:0]	q_m;
+	reg	[9:0]	pix_word;
 
-	// Data Types:
+	integer	k;
+
+	reg	[8:0]	q_mp;
+
+	reg	signed	[4:0]	count;
+
+	reg	[1:0]	s_dtype;
+	reg	[9:0]	brv_word;
+
+	wire	[3:0]	qm_zeros;
+
+	// Data Types in i_dtype:
 	//	2'b00	Guard band
 	//	2'b01	Control period
 	//	2'b10	Data Island
 	//	2'b11	Pixel Data
 	//
+	// }}}
 
-	///////////////////////////////
+	////////////////////////////////////////////////////////////////////////
 	//
-	// Guard band
+	// Guard word
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
-	reg	[9:0]	guard_word;
+	//
 	always @(*)
-		case(CHANNEL)
-		2'b00:   guard_word = 10'b1011001100;
-		2'b01:   guard_word = 10'b0100110011;
-		default: guard_word = 10'b1011001100;
-		endcase
+	case(CHANNEL)
+	2'b00:   guard_word = 10'b1011001100;
+	2'b01:   guard_word = 10'b0100110011;
+	default: guard_word = 10'b1011001100;
+	endcase
+	// }}}
 
-	reg	[1:0]	r_dtype;
 	always @(posedge i_clk)
 		r_dtype <= i_dtype[1:0];
 
-	///////////////////////////////
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Control signal encoding
-	reg	[9:0]	ctrl_word;
-	reg	[1:0]	r_ctl;
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
 
 	always @(posedge i_clk)
 		r_ctl <= i_ctl;
@@ -88,14 +119,14 @@ module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
 	2'b10: ctrl_word <= 10'b01_0101_0100;
 	2'b11: ctrl_word <= 10'b10_1010_1011;
 	endcase
-
-	///////////////////////////////
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Auxilliary encoding
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
-	reg	[9:0]	aux_word;
-	reg	[3:0]	r_aux;
-
+	//
 	always @(posedge i_clk)
 		r_aux <= i_aux;
 
@@ -121,18 +152,14 @@ module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
 	4'b1110: aux_word <= 10'b01_0110_0011;
 	4'b1111: aux_word <= 10'b10_1100_0011;
 	endcase
-
-	///////////////////////////////
+	// }}}
+	////////////////////////////////////////////////////////////////////////
 	//
 	// Pixel data encoding
+	// {{{
+	////////////////////////////////////////////////////////////////////////
 	//
-	reg	[3:0]	ones, ones_counter;
-	reg	[3:0]	qm_ones, qm_ones_counter;
-	reg	[8:0]	q_m;
-	reg	[9:0]	pix_word;
-
-	integer	k;
-
+	//
 	always @(*)
 	begin
 		ones_counter = 0;
@@ -151,14 +178,11 @@ module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
 		qm_ones = ones_counter;
 	end
 
-	wire	[3:0]	qm_zeros;
 	// assign	zeros    = 4'h8-ones;
 	assign	qm_zeros = 4'h8-qm_ones;
 
 	// Take one always block to generate q_m
 	// This is q_m(pre)
-	reg	[8:0]	q_mp;
-
 	always @(*)
 	// 8-bit pixel data
 	if ((ones > 4)||((ones == 4)&&(i_data[7])))
@@ -184,25 +208,9 @@ module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
 		q_mp[8] = 1'b1;
 	end
 
-/*
-	(* keep *) wire	[7:0]	brv_pix;
-	always @(*)
-	begin
-		brv_pix[0] = i_data[7];
-		brv_pix[1] = i_data[6];
-		brv_pix[2] = i_data[5];
-		brv_pix[3] = i_data[4];
-		brv_pix[4] = i_data[3];
-		brv_pix[5] = i_data[2];
-		brv_pix[6] = i_data[1];
-		brv_pix[7] = i_data[0];
-	end
-*/
-
 	always @(posedge i_clk)
 		q_m <= q_mp;
 
-	reg	signed	[4:0]	count;
 	initial	count = 0;
 
 	always @(posedge i_clk)
@@ -230,17 +238,23 @@ module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
 		count <= count - (q_m[8] ? 0 : 5'h2)
 			+ (qm_ones - qm_zeros);
 	end
+	// }}}
 
-	reg	[1:0]	s_dtype;
 	always @(posedge i_clk)
 		s_dtype <= r_dtype;
-
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Outgoing TMDS word
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+	
 	//	2'b00	Guard band
 	//	2'b01	Control period
 	//	2'b10	Data Island
 	//	2'b11	Pixel Data
 	//
-	reg	[9:0]	brv_word;
 	always @(posedge i_clk)
 	case(s_dtype)
 	2'b00: brv_word <= guard_word;
@@ -253,7 +267,16 @@ module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
 	generate for(gk=0; gk<10; gk=gk+1)
 		assign	o_word[gk] = brv_word[9-gk];
 	endgenerate
-
+	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//
+// Formal properties
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 	initial	assert(CHANNEL < 2'b11);
 
@@ -262,4 +285,5 @@ module	tmdsencode(i_clk, i_dtype, i_ctl, i_aux, i_data, o_word);
 	always @(*)
 		assert(count > -5'sd10);
 `endif
+// }}}
 endmodule

@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	genhdmi
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	Generates the timing signals (not the clock) for an outgoing
@@ -12,9 +12,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2018-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -29,45 +29,50 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
+// }}}
+module	genhdmi #(
+		// {{{
+		parameter	HW=12,VW=12,
+		localparam	BITS_PER_COLOR = 8,
+		localparam	BPC = BITS_PER_COLOR,
+				BITS_PER_PIXEL = 3 * BPC,
+				BPP = BITS_PER_PIXEL
+		// }}}
+	) (
+		// {{{
+		input	wire			i_pixclk,
+		// Verilator lint_off SYNCASYNCNET
+		input	wire			i_reset,
+		// Verilator lint_on SYNCASYNCNET
+		input	wire	[BPP-1:0]	i_rgb_pix,
 		// Video mode information
-		i_hm_width,  i_hm_porch, i_hm_synch, i_hm_raw,
-		i_vm_height, i_vm_porch, i_vm_synch, i_vm_raw,
+		// {{{
+		input	wire	[HW-1:0]	i_hm_width, i_hm_porch,
+						i_hm_synch, i_hm_raw,
+		input	wire	[VW-1:0]	i_vm_height, i_vm_porch,
+						i_vm_synch, i_vm_raw,
+		// }}}
 		// Pixel generation signals
-		o_rd, o_newline, o_newframe,
+		// {{{
+		output	reg			o_rd, o_newline, o_newframe,
+		// }}}
 		// HDMI outputs
-		o_red, o_grn, o_blu);
-	parameter	HW=12,VW=12;
-	localparam	BITS_PER_COLOR = 8;
-	localparam	BPC = BITS_PER_COLOR,
-			BITS_PER_PIXEL = 3 * BPC,
-			BPP = BITS_PER_PIXEL;
-	input	wire			i_pixclk;
-	// Verilator lint_off SYNCASYNCNET
-	input	wire			i_reset;
-	// Verilator lint_on SYNCASYNCNET
-	input	wire	[BPP-1:0]	i_rgb_pix;
-	//
-	input	wire	[HW-1:0]	i_hm_width, i_hm_porch,
-					i_hm_synch, i_hm_raw;
-	input	wire	[VW-1:0]	i_vm_height, i_vm_porch,
-					i_vm_synch, i_vm_raw;
-	//
-	output	reg			o_rd, o_newline, o_newframe;
-	//
-	output	wire	[9:0]		o_red, o_grn, o_blu;
+		// {{{
+		output	wire	[9:0]		o_red, o_grn, o_blu
+		// }}}
+		// }}}
+	);
 
-
+	// Local declarations
+	// {{{
 	reg		vsync, hsync;
 	reg	[1:0]	hdmi_type;
 	reg	[3:0]	hdmi_ctl;
@@ -90,15 +95,20 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 `ifdef	FORMAL
 	wire	[47:0]		f_vmode, f_hmode;
 `endif
+	// }}}
 
-
+	// pix_reset, pix_reset_pipe
+	// {{{
 	initial	{ pix_reset, pix_reset_pipe } = -1;
 	always @(posedge i_pixclk, posedge i_reset)
 	if (i_reset)
 		{ pix_reset, pix_reset_pipe } <= -1;
 	else
 		{ pix_reset, pix_reset_pipe } <= { pix_reset_pipe, 1'b0 };
+	// }}}
 
+	// hpos, o_newline, hsync, hrd
+	// {{{
 	initial	hpos       = 0;
 	initial	o_newline  = 0;
 	initial	hsync = 0;
@@ -120,7 +130,10 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		o_newline <= (hpos == i_hm_width-2);
 		hsync <= (hpos >= i_hm_porch-1'b1)&&(hpos<i_hm_synch-1'b1);
 	end
+	// }}}
 
+	// o_newframe
+	// {{{
 	always @(posedge i_pixclk)
 	if (pix_reset)
 		o_newframe <= 1'b0;
@@ -128,7 +141,10 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		o_newframe <= 1'b1;
 	else
 		o_newframe <= 1'b0;
+	// }}}
 
+	// vpos, vsync
+	// {{{
 	initial	vpos = 0;
 	initial	vsync = 1'b0;
 	always @(posedge i_pixclk)
@@ -151,27 +167,39 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		// the first pixel clock is valid.
 		vsync <= (vpos >= i_vm_porch-1'b1)&&(vpos<i_vm_synch-1'b1);
 	end
+	// }}}
 
+	// vrd
+	// {{{
 	initial	vrd = 1'b1;
 	always @(posedge i_pixclk)
 		vrd <= (vpos < i_vm_height)&&(!pix_reset);
+	// }}}
 
+	// first_frame
+	//  {{{
 	initial	first_frame = 1'b1;
 	always @(posedge i_pixclk)
 	if (pix_reset)
 		first_frame <= 1'b1;
 	else if (o_newframe)
 		first_frame <= 1'b0;
+	// }}}
 
 	assign	w_rd = (hrd)&&(vrd)&&(!first_frame);
 
+	// o_rd
+	// {{{
 	initial	o_rd = 1'b0;
 	always @(posedge i_pixclk)
 	if (pix_reset)
 		o_rd <= 1'b0;
 	else
 		o_rd <= w_rd;
+	// }}}
 
+	// x_pixel
+	// {{{
 	always @(posedge i_pixclk)
 	if (w_rd)
 	begin
@@ -183,19 +211,25 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		grn_pixel <= 0;
 		blu_pixel <= 0;
 	end
+	// }}}
 
 	localparam	[1:0]	GUARD = 2'b00;
 	localparam	[1:0]	CTL_PERIOD  = 2'b01;
-	localparam	[1:0]	DATA_ISLAND = 2'b10;
+	// localparam	[1:0]	DATA_ISLAND = 2'b10;
 	localparam	[1:0]	VIDEO_DATA  = 2'b11;
 
+	// pre_line
+	// {{{
 	initial	pre_line = 1'b1;
 	always @(posedge i_pixclk)
 	if (pix_reset)
 		pre_line <= 1'b1;
 	else
 		pre_line <= (vpos < i_vm_height);
+	// }}}
 
+	// hdmi_type
+	// {{{
 	initial	hdmi_type = GUARD;
 	always @(posedge i_pixclk)
 	if (pix_reset)
@@ -212,34 +246,56 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 			hdmi_type <= CTL_PERIOD;
 	end else
 		hdmi_type <= CTL_PERIOD;
+	// }}}
 
+	// hdmi_ctl
+	// {{{
 	always @(*)
 		hdmi_ctl = 4'h1;
+	// }}}
 
+	// hdmi_data
+	// {{{
 	always @(*)
 	begin
 		hdmi_data[1:0]	= { vsync, hsync };
 		hdmi_data[11:2] = 0;
 	end
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// TMDS encoding
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
 
 	// Channel 0 = blue
-	tmdsencode #(.CHANNEL(2'b00)) hdmi_encoder_ch0(i_pixclk,
+	tmdsencode #(.CHANNEL(2'b00)
+	) hdmi_encoder_ch0(i_pixclk,
 			hdmi_type, { vsync, hsync },
 			hdmi_data[3:0], blu_pixel, o_blu);
 
 	// Channel 1 = green
-	tmdsencode #(.CHANNEL(2'b01)) hdmi_encoder_ch1(i_pixclk,
+	tmdsencode #(.CHANNEL(2'b01)
+	) hdmi_encoder_ch1(i_pixclk,
 			hdmi_type, hdmi_ctl[1:0],
 			hdmi_data[7:4], grn_pixel, o_grn);
 
 	// Channel 2 = red
-	tmdsencode #(.CHANNEL(2'b10)) hdmi_encoder_ch2(i_pixclk,
+	tmdsencode #(.CHANNEL(2'b10)
+	) hdmi_encoder_ch2(i_pixclk,
 			hdmi_type, hdmi_ctl[3:2],
 			hdmi_data[11:8], red_pixel, o_red);
-
+	// }}}
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 // Formal properties for verification purposes
-//
+// {{{
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
 	reg	f_past_valid;
 	initial	f_past_valid = 1'b0;
@@ -436,13 +492,14 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		##1 (hdmi_type == GUARD) [*2];
 	endsequence
 
-	assert property (@(posedge i_clk)
+	assert property (@(posedge i_pixclk)
 		VIDEO_PREAMBLE
 		|=> (hdmi_type == VIDEO_DATA)&&(hpos == 0)&&(vpos == 0));
 
-	assert property (@(posedge i_clk)
+	assert property (@(posedge i_pixclk)
 		disable iff (pix_reset)
 		((hdmi_type != VIDEO_DATA) throughout (not VIDEO_PREAMBLE))
+	);
 
 	//
 	// Data Islands
@@ -453,17 +510,18 @@ module	genhdmi(i_pixclk, i_reset, i_rgb_pix,
 		##1 (hdmi_type == GUARD) [*2];
 	endsequence
 
-	assert property (@(posedge i_clk)
+	assert property (@(posedge i_pixclk)
 		disable iff (pix_reset)
 		(DATA_PREAMBLE)
-		|=> (hdmi_type == DATA_ISLAND)[*64]);
+		|=> (hdmi_type == DATA_ISLAND)[*64]
 		##1 (hdmi_type == GUARD) [*2]);
 
-	assert property (@(posedge i_clk)
+	assert property (@(posedge i_pixclk)
 		disable iff (pix_reset)
 		((hdmi_type != DATA_ISLAND) throughout (not DATA_PREAMBLE))
 		|=> (hdmi_type != DATA_ISLAND));
 
 `endif
 `endif
+// }}}
 endmodule

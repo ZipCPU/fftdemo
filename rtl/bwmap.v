@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	bwmap.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	One of several false-color mapping functions
@@ -12,22 +12,33 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
-module	bwmap(i_pixel, o_r, o_g, o_b);
-	input	wire	[7:0]	i_pixel;
-	output	wire	[7:0]	o_r, o_g, o_b;
+// }}}
+module	bwmap (
+	// {{{
+	input	wire	[7:0]	i_pixel,
+	output	wire	[7:0]	o_r, o_g, o_b
+	// }}}
+	);
 
+	// Local declarations
+	// {{{
 	reg	[7:0]	rtbl	[0:255];
 	reg	[7:0]	gtbl	[0:255];
 	reg	[7:0]	btbl	[0:255];
+	// }}}
 
 	assign	o_r = rtbl[i_pixel];
 	assign	o_g = gtbl[i_pixel];
 	assign	o_b = btbl[i_pixel];
 
+	////////////////////////////////////////////////////////////////////////
+	//
 	// Now define the tables themselves
+	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
 	initial begin
 	rtbl[  0] = 8'h00; gtbl[  0] = 8'h00; btbl[  0] = 8'h00;
 	rtbl[  1] = 8'h00; gtbl[  1] = 8'h00; btbl[  1] = 8'h00;
@@ -285,5 +296,5 @@ module	bwmap(i_pixel, o_r, o_g, o_b);
 	rtbl[253] = 8'hfc; gtbl[253] = 8'hfc; btbl[253] = 8'hfc;
 	rtbl[254] = 8'hfd; gtbl[254] = 8'hfd; btbl[254] = 8'hfd;
 	end
-
+	// }}}
 endmodule

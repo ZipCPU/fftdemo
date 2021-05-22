@@ -1,6 +1,9 @@
+[tasks]
+prf
+
 [options]
-mode prove
-depth 32
+prf: mode prove
+depth 5
 
 [engines]
 smtbmc
@@ -13,5 +16,5 @@ prep -top tmdstest
 
 [files]
 tmdstest.v
-../../rtl/tmdsencode.v
-../../rtl/tmdsdecode.v
+../../rtl/video/tmdsencode.v
+../../rtl/video/tmdsdecode.v

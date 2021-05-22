@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename:	qtrstage.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	This file encapsulates the 4 point stage of a decimation in
@@ -40,9 +40,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2015-2019, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -57,16 +57,16 @@
 // with this program.  (It's in the $(ROOT)/doc directory.  Run make with no
 // target there if the PDF file isn't present.)  If not, see
 // <http://www.gnu.org/licenses/> for a copy.
-//
+// }}}
 // License:	GPL, v3, as defined and found on www.gnu.org,
+// {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
 //
 `default_nettype	none
-//
+// }}}
 module	qtrstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	parameter	IWIDTH=16, OWIDTH=IWIDTH+1;
 	parameter	LGWIDTH=8, INVERSE=0,SHIFT=0;
@@ -120,22 +120,22 @@ module	qtrstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	initial wait_for_sync = 1'b1;
 	initial iaddr = 0;
 	always @(posedge i_clk)
-		if (i_reset)
-		begin
-			wait_for_sync <= 1'b1;
-			iaddr <= 0;
-		end else if ((i_ce)&&((!wait_for_sync)||(i_sync)))
-		begin
-			iaddr <= iaddr + 1'b1;
-			wait_for_sync <= 1'b0;
-		end
+	if (i_reset)
+	begin
+		wait_for_sync <= 1'b1;
+		iaddr <= 0;
+	end else if ((i_ce)&&((!wait_for_sync)||(i_sync)))
+	begin
+		iaddr <= iaddr + 1'b1;
+		wait_for_sync <= 1'b0;
+	end
 
 	always @(posedge i_clk)
-		if (i_ce)
-		begin
-			imem[0] <= i_data;
-			imem[1] <= imem[0];
-		end
+	if (i_ce)
+	begin
+		imem[0] <= i_data;
+		imem[1] <= imem[0];
+	end
 
 
 	// Note that we don't check on wait_for_sync or i_sync here.
@@ -143,20 +143,20 @@ module	qtrstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	// first i_ce, so we are safe.
 	initial pipeline = 3'h0;
 	always	@(posedge i_clk)
-		if (i_reset)
-			pipeline <= 3'h0;
-		else if (i_ce) // is our pipeline process full?  Which stages?
-			pipeline <= { pipeline[1:0], iaddr[1] };
+	if (i_reset)
+		pipeline <= 3'h0;
+	else if (i_ce) // is our pipeline process full?  Which stages?
+		pipeline <= { pipeline[1:0], iaddr[1] };
 
 	// This is the pipeline[-1] stage, pipeline[0] will be set next.
 	always	@(posedge i_clk)
-		if ((i_ce)&&(iaddr[1]))
-		begin
-			sum_r  <= imem_r + i_data_r;
-			sum_i  <= imem_i + i_data_i;
-			diff_r <= imem_r - i_data_r;
-			diff_i <= imem_i - i_data_i;
-		end
+	if ((i_ce)&&(iaddr[1]))
+	begin
+		sum_r  <= imem_r + i_data_r;
+		sum_i  <= imem_i + i_data_i;
+		diff_r <= imem_r - i_data_r;
+		diff_i <= imem_i - i_data_i;
+	end
 
 	// pipeline[1] takes sum_x and diff_x and produces rnd_x
 
@@ -165,48 +165,58 @@ module	qtrstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	// on the next clock.  Thus, we simplify this logic and do
 	// it independent of pipeline[2].
 	always	@(posedge i_clk)
-		if (i_ce)
+	if (i_ce)
+	begin
+		ob_a <= { rnd_sum_r, rnd_sum_i };
+		// on Even, W = e^{-j2pi 1/4 0} = 1
+		if (!iaddr[0])
 		begin
-			ob_a <= { rnd_sum_r, rnd_sum_i };
-			// on Even, W = e^{-j2pi 1/4 0} = 1
-			if (!iaddr[0])
-			begin
-				ob_b_r <= rnd_diff_r;
-				ob_b_i <= rnd_diff_i;
-			end else if (INVERSE==0) begin
-				// on Odd, W = e^{-j2pi 1/4} = -j
-				ob_b_r <=   rnd_diff_i;
-				ob_b_i <= n_rnd_diff_r;
-			end else begin
-				// on Odd, W = e^{j2pi 1/4} = j
-				ob_b_r <= n_rnd_diff_i;
-				ob_b_i <=   rnd_diff_r;
-			end
+			ob_b_r <= rnd_diff_r;
+			ob_b_i <= rnd_diff_i;
+		end else if (INVERSE==0) begin
+			// on Odd, W = e^{-j2pi 1/4} = -j
+			ob_b_r <=   rnd_diff_i;
+			ob_b_i <= n_rnd_diff_r;
+		end else begin
+			// on Odd, W = e^{j2pi 1/4} = j
+			ob_b_r <= n_rnd_diff_i;
+			ob_b_i <=   rnd_diff_r;
 		end
+	end
 
 	always	@(posedge i_clk)
-		if (i_ce)
-		begin // In sequence, clock = 3
-			omem[0] <= ob_b;
-			omem[1] <= omem[0];
-			if (pipeline[2])
-				o_data <= ob_a;
-			else
-				o_data <= omem[1];
-		end
+	if (i_ce)
+	begin // In sequence, clock = 3
+		omem[0] <= ob_b;
+		omem[1] <= omem[0];
+		if (pipeline[2])
+			o_data <= ob_a;
+		else
+			o_data <= omem[1];
+	end
 
 	initial	o_sync = 1'b0;
 	always	@(posedge i_clk)
-		if (i_reset)
-			o_sync <= 1'b0;
-		else if (i_ce)
-			o_sync <= (iaddr[2:0] == 3'b101);
+	if (i_reset)
+		o_sync <= 1'b0;
+	else if (i_ce)
+		o_sync <= (iaddr[2:0] == 3'b101);
 
 `ifdef	FORMAL
-	reg	f_past_valid;
+	// Formal declarations
+	// {{{
+	reg				f_past_valid;
+	reg	signed [IWIDTH-1:0]	f_piped_real	[0:7];
+	reg	signed [IWIDTH-1:0]	f_piped_imag	[0:7];
+	reg				f_rsyncd;
+	wire				f_syncd;
+	reg	[1:0]			f_state;
+	wire	signed [OWIDTH-1:0]	f_o_real, f_o_imag;
+	// }}}
+
 	initial	f_past_valid = 1'b0;
 	always @(posedge i_clk)
-		f_past_valid = 1'b1;
+		f_past_valid <= 1'b1;
 
 `ifdef	QTRSTAGE
 	always @(posedge i_clk)
@@ -216,8 +226,6 @@ module	qtrstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	// The below logic only works if the rounding stage does nothing
 	initial	assert(IWIDTH+1 == OWIDTH);
 
-	reg	signed [IWIDTH-1:0]	f_piped_real	[0:7];
-	reg	signed [IWIDTH-1:0]	f_piped_imag	[0:7];
 
 	always @(posedge i_clk)
 	if (i_ce)
@@ -247,18 +255,14 @@ module	qtrstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 		f_piped_imag[7] <= f_piped_imag[6];
 	end
 
-	reg	f_rsyncd;
-	wire	f_syncd;
 
 	initial	f_rsyncd = 0;
 	always @(posedge i_clk)
-	if(i_reset)
+	if (i_reset)
 		f_rsyncd <= 1'b0;
 	else if (!f_rsyncd)
 		f_rsyncd <= (o_sync);
 	assign	f_syncd = (f_rsyncd)||(o_sync);
-
-	reg	[1:0]	f_state;
 
 
 	initial	f_state = 0;
@@ -275,11 +279,6 @@ module	qtrstage(i_clk, i_reset, i_ce, i_sync, i_data, o_data, o_sync);
 	always @(posedge i_clk)
 		assert(f_state[1:0] == iaddr[1:0]);
 
-	wire	signed [2*IWIDTH-1:0]	f_i_real, f_i_imag;
-	assign			f_i_real = i_data[2*IWIDTH-1:IWIDTH];
-	assign			f_i_imag = i_data[  IWIDTH-1:0];
-
-	wire	signed [OWIDTH-1:0]	f_o_real, f_o_imag;
 	assign			f_o_real = o_data[2*OWIDTH-1:OWIDTH];
 	assign			f_o_imag = o_data[  OWIDTH-1:0];
 
