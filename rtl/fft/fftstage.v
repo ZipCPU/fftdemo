@@ -33,7 +33,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -260,9 +260,9 @@ module	fftstage #(
 		) bfly(
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset), .i_ce(i_ce),
-			.i_coef((idle && !i_ce) ? 0:ib_c),
-			.i_left((idle && !i_ce) ? 0:ib_a),
-			.i_right((idle && !i_ce) ? 0:ib_b),
+			.i_coef( (idle && !i_ce) ? {(2*CWIDTH){1'b0}}:ib_c),
+			.i_left( (idle && !i_ce) ? {(2*IWIDTH){1'b0}}:ib_a),
+			.i_right((idle && !i_ce) ? {(2*IWIDTH){1'b0}}:ib_b),
 			.i_aux(ib_sync && i_ce),
 			.o_left(ob_a), .o_right(ob_b), .o_aux(ob_sync)
 			// }}}
@@ -281,9 +281,9 @@ module	fftstage #(
 		) bfly(
 			// {{{
 			.i_clk(i_clk), .i_reset(i_reset), .i_ce(i_ce),
-			.i_coef( (idle && !i_ce)?0:ib_c),
-			.i_left( (idle && !i_ce)?0:ib_a),
-			.i_right((idle && !i_ce)?0:ib_b),
+			.i_coef( (idle && !i_ce)? {(2*CWIDTH){1'b0}} :ib_c),
+			.i_left( (idle && !i_ce)? {(2*IWIDTH){1'b0}} :ib_a),
+			.i_right((idle && !i_ce)? {(2*IWIDTH){1'b0}} :ib_b),
 			.i_aux(ib_sync && i_ce),
 			.o_left(ob_a), .o_right(ob_b), .o_aux(ob_sync)
 			// }}}
@@ -341,7 +341,7 @@ module	fftstage #(
 	if (i_ce)
 		nxt_oaddr[0] <= oaddr[0];
 	generate if (LGSPAN>1)
-	begin
+	begin : WIDE_LGSPAN
 
 		always @(posedge i_clk)
 		if (i_ce)

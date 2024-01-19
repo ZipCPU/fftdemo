@@ -15,7 +15,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// Copyright (C) 2018-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -243,32 +243,42 @@ module	main (
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// Calculate the FFT itself
+	// FFT the data
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
 
-
-	fftmain fftmaini(i_clk, i_reset, pre_ce, { pre_sample, 12'h0 },
-			fft_sample, fft_sync);
+	fftmain
+	fftmaini(
+		// {{{
+		i_clk, i_reset, pre_ce, { pre_sample, 12'h0 },
+			fft_sample, fft_sync
+		// }}}
+	);
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// Calculate the log magnitude squared of the result
+	// Calculate the log of the squared output
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
+	// This helps us get better dynamic range in a moment when writing
+	// to memory and then video
 	//
-
-	logfn logi(i_clk, i_reset,
+	logfn
+	logi(
+		// {{{
+		i_clk, i_reset,
 			pre_ce, fft_sync, fft_sample[31:16], fft_sample[15:0],
-			raw_pixel, raw_sync);
+			raw_pixel, raw_sync
+		// }}}
+	);
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// Write the FFT data to memory
+	// Write the data to a scrolling memory area
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -284,17 +294,18 @@ module	main (
 	) data2mem(
 		// {{{
 		i_clk, i_reset,
-		pre_ce, raw_pixel, raw_sync,
-		last_line_addr,LINEWORDS,LHEIGHT, baseoffset,
-		dat_cyc, dat_stb, dat_we, dat_addr, dat_pix, dat_sel,
-			dat_ack, dat_stall, dat_err
+			pre_ce, raw_pixel, raw_sync,
+			last_line_addr,LINEWORDS,LHEIGHT, baseoffset,
+			dat_cyc, dat_stb, dat_we, dat_addr, dat_pix, dat_sel,
+				dat_ack, dat_stall, dat_err
 		// }}}
 	);
 
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// Memory implementation
+	// Arbitrate access to memory: either the pixel writer or the pixel
+	// reader may have access to the memory, but never both
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -313,21 +324,26 @@ module	main (
 		// }}}
 	) arb(
 		// {{{
-		i_clk,
+		.i_clk(i_clk),
 		// New data writing: the first (priority) input channel
 		// {{{
-		dat_cyc, dat_stb, dat_we, dat_addr, dat_pix, dat_sel,
-			dat_ack, dat_stall, dat_err,
+		.i_a_cyc(dat_cyc), .i_a_stb(dat_stb), .i_a_we(dat_we),
+			.i_a_adr(dat_addr), .i_a_dat(dat_pix),
+			.i_a_sel(dat_sel),
+		.o_a_stall(dat_stall), .o_a_ack(dat_ack), .o_a_err(dat_err),
 		// }}}
 		// Video reading: the second Wishbone channel
 		// {{{
-		video_cyc, video_stb, 1'b0, video_addr, dat_pix, dat_sel,
-			video_ack, video_stall, video_err,
+		.i_b_cyc(video_cyc), .i_b_stb(video_stb), .i_b_we(1'b0),
+			.i_b_adr(video_addr), .i_b_dat(dat_pix),
+			.i_b_sel(dat_sel),
+		.o_b_stall(video_stall), .o_b_ack(video_ack), .o_b_err(video_err),
 		// }}}
 		// The arbitrated memory channel
 		// {{{
-		mem_cyc, mem_stb, mem_we, mem_addr,mem_in, mem_sel,
-			mem_ack, mem_stall, mem_err
+		.o_cyc(mem_cyc), .o_stb(mem_stb), .o_we(mem_we),
+			.o_adr(mem_addr), .o_dat(mem_in), .o_sel(mem_sel),
+		.i_stall(mem_stall), .i_ack(mem_ack), .i_err(mem_err)
 		// }}}
 		// }}}
 	);
@@ -340,7 +356,7 @@ module	main (
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
-	// Read from the framebuffer to create a VGA output
+	// Read a framebuffer from memory and write it to the screen
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//

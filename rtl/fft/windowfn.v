@@ -53,7 +53,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// Copyright (C) 2018-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -133,17 +133,23 @@ module	windowfn #(
 	// Load the coefficients
 	// {{{
 	wire	[LGNFFT-1:0]	tapwidx;
-	generate if (OPT_FIXED_TAPS)
+	generate if (OPT_FIXED_TAPS || INITIAL_COEFFS != 0)
+	begin : LOAD_COEFFICIENTS
+		initial $readmemh(INITIAL_COEFFS, cmem);
+	end
+
+	if (OPT_FIXED_TAPS)
 	begin : SET_FIXED_TAPS
 		// {{{
-		initial $readmemh(INITIAL_COEFFS, cmem);
 
 		assign	tapwidx = 0;
 		// Make Verilators -Wall happy
+		// {{{
 		// Verilator lint_off UNUSED
 		wire	[TW:0]	ignored_inputs;
 		assign	ignored_inputs = { i_tap_wr, i_tap };
 		// Verilator lint_on  UNUSED
+		// }}}
 		// }}}
 	end else begin : DYNAMICALLY_SET_TAPS
 		// {{{
@@ -157,8 +163,6 @@ module	windowfn #(
 		else if (i_tap_wr)
 			r_tapwidx <= r_tapwidx + 1'b1;
 
-		if (INITIAL_COEFFS != 0)
-			initial $readmemh(INITIAL_COEFFS, cmem);
 		always @(posedge i_clk)
 		if (i_tap_wr)
 			cmem[r_tapwidx] <= i_tap;

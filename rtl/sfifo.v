@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Filename: 	rtl/sfifo.v
-//
+// {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
 // Purpose:	A synchronous data FIFO.
@@ -10,9 +10,9 @@
 //		Gisselquist Technology, LLC
 //
 ////////////////////////////////////////////////////////////////////////////////
-//
-// Copyright (C) 2018-2020, Gisselquist Technology, LLC
-//
+// }}}
+// Copyright (C) 2018-2024, Gisselquist Technology, LLC
+// {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
@@ -31,12 +31,10 @@
 // License:	GPL, v3, as defined and found on www.gnu.org,
 //		http://www.gnu.org/licenses/gpl.html
 //
-//
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
-//
+// }}}
 module sfifo(i_clk, i_reset, i_wr, i_data, o_full, i_rd, o_data, o_empty, o_err);
 	parameter	BW=8;		// Byte/data width
 	parameter	LGFLEN=4;	// Log of the buffer size

@@ -67,7 +67,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2018-2021, Gisselquist Technology, LLC
+// Copyright (C) 2018-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of  the GNU General Public License as published
@@ -115,7 +115,7 @@ module	subfildown #(
 		// coefficients.  So, for LGNCOEFFS=10, a 2^10 = 1024 tap
 		// filter will be implemented.
 		parameter	NCOEFFS=103,
-		parameter	LGNCOEFFS=$clog2(NCOEFFS),
+		localparam	LGNCOEFFS=$clog2(NCOEFFS),
 		//
 		// For fixed coefficients, if INITIAL_COEFFS != 0 (i.e. ""),
 		// then the filter's coefficients will be initialized from the
@@ -140,7 +140,7 @@ module	subfildown #(
 		// }}}
 	);
 
-	// Local declarations
+	// Declare registers, nets, and memories
 	// {{{
 	reg	[(CW-1):0]	cmem	[0:((1<<LGNCOEFFS)-1)];
 	reg	[(IW-1):0]	dmem	[0:((1<<LGNCOEFFS)-1)];
@@ -152,19 +152,21 @@ module	subfildown #(
 	reg	[LGNCOEFFS-1:0]	didx, tidx;
 	reg			running, last_coeff;
 	//
-	reg				d_ce;
+	reg				d_ce, d_last;
 	reg	signed	[IW-1:0]	dval;
 	reg	signed	[CW-1:0]	cval;
 	//
-	reg	p_run, p_ce;
+	reg				p_run, p_ce, p_last;
 	//
 	reg	signed [IW+CW-1:0]	product;
 	//
 	reg			acc_valid;
 	reg	[AW-1:0]	accumulator;
 	//
+	wire			sgn, overflow;
 	wire	[AW-1:0]	rounded_result;
 	// }}}
+
 	////////////////////////////////////////////////////////////////////////
 	//
 	// Adjust the coefficients for our filter
@@ -173,16 +175,23 @@ module	subfildown #(
 	//
 	// Generate the decimator via: genfil 1024 decimator 23 0.45
 	//
-	generate if (FIXED_COEFFS)
+	generate if (FIXED_COEFFS || INITIAL_COEFFS != 0)
 	begin : LOAD_INITIAL_COEFFS
-		initial $readmemh(INITIAL_COEFFS, cmem);
 
+		initial $readmemh(INITIAL_COEFFS, cmem);
+	end
+
+	if (FIXED_COEFFS)
+	begin : NO_COEFF_UPDATES
 		// Make Verilator's -Wall happy
+		// {{{
 		// verilator lint_off UNUSED
 		wire	ignored_inputs;
 		assign	ignored_inputs = &{ 1'b0, i_tap_wr, i_tap };
 		// verilator lint_on  UNUSED
+		// }}}
 	end else begin : LOAD_COEFFICIENTS
+		// {{{
 		// Coeff memory write index
 		reg	[LGNCOEFFS-1:0]	wr_coeff_index;
 
@@ -193,13 +202,10 @@ module	subfildown #(
 		else if (i_tap_wr)
 			wr_coeff_index <= wr_coeff_index+1'b1;
 
-		if (INITIAL_COEFFS != 0)
-			initial $readmemh(INITIAL_COEFFS, cmem);
-
 		always @(posedge i_clk)
 		if (i_tap_wr)
 			cmem[wr_coeff_index] <= i_tap;
-
+		// }}}
 	end endgenerate
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -227,7 +233,7 @@ module	subfildown #(
 	//
 	//
 
-	initial	countdown = NDOWN-1;
+	initial	countdown = NDOWN[LGNDOWN-1:0]-1;
 	initial	first_sample = 1;
 	always @(posedge i_clk)
 	if (i_ce)
@@ -235,8 +241,9 @@ module	subfildown #(
 		countdown <= countdown - 1;
 		first_sample <= (countdown == 0);
 		if (countdown == 0)
-			countdown <= NDOWN-1;
+			countdown <= NDOWN[LGNDOWN-1:0]-1;
 	end
+
 	// }}}
 	////////////////////////////////////////////////////////////////////////
 	//
@@ -298,18 +305,24 @@ module	subfildown #(
 	initial	d_ce  = 0;
 	initial	p_run = 0;
 	initial	p_ce  = 0;
+	initial	d_last= 0;
+	initial	p_last= 0;
 	always @(posedge i_clk)
 	if (i_reset)
 	begin
-		p_run <= 0;
-		p_ce  <= 0;
 		d_ce  <= 0;
+		p_ce  <= 0;
+		p_run <= 0;
+		d_last  <= 0;
+		p_last  <= 0;
 	end else begin
 		// d_ce is true when the first memory read of data is valid
 		d_ce  <= (first_sample)&&(i_ce);
+		d_last<= last_coeff && p_run;
+		p_last<= p_run && d_last;
 		//
 		//
-		p_run <= (tidx != 0)&&(p_run || p_ce);
+		p_run <= !p_last && (p_run || p_ce);
 		// p_ce is true when the first product is valid
 		p_ce  <= d_ce;
 	end
@@ -366,30 +379,44 @@ module	subfildown #(
 
 	generate if (OW == AW-SHIFT)
 	begin : NO_SHIFT
+		assign	sgn = accumulator[AW-1];
 		assign	rounded_result = accumulator[AW-SHIFT-1:AW-SHIFT-OW];
+		assign	overflow  = sgn  != rounded_result[AW-1];
 	end else if (AW-SHIFT > OW)
 	begin : SHIFT_OUTPUT
-		// {{{
 		wire	[AW-1:0]	prerounded = {accumulator[AW-SHIFT-1:0],
 						{(SHIFT){1'b0}} };
+
+		assign	sgn = accumulator[AW-1];
 		assign	rounded_result = prerounded
 				+ { {(OW){1'b0}}, prerounded[AW-OW-1],
 					{(AW-OW-1){!prerounded[AW-OW-1]}} };
-		// }}}
+		assign	overflow = (sgn && !prerounded[AW-1]) || (!sgn && rounded_result[AW-1]);
 	end else begin : UNIMPLEMENTED_SHIFT
 	end endgenerate
-
-	// o_ce
+	// }}}
+	////////////////////////////////////////////////////////////////////////
+	//
+	// Return the results
 	// {{{
+	////////////////////////////////////////////////////////////////////////
+	//
+	//
+
+
 	initial	o_ce = 1'b0;
+	always @(posedge i_clk)
+		o_ce <= !i_reset && p_ce && (acc_valid);
+
 	always @(posedge i_clk)
 	if (p_ce)
 	begin
-		o_ce <= (!i_reset)&&(acc_valid);
-		o_result <= rounded_result[AW-1:AW-OW];
-	end else
-		o_ce <= 1'b0;
-	// }}}
+		if (overflow)
+			o_result <= (sgn) ? { 1'b1, {(OW-1){1'b0}} }
+					: { 1'b0, {(OW-1){1'b1}} };
+		else
+			o_result <= rounded_result[AW-1:AW-OW];
+	end
 
 	//
 	// If we were to use a ready signal in addition to our i_ce (i.e. valid)

@@ -18,7 +18,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -48,7 +48,7 @@ module	memdev #(
 		parameter	LGMEMSZ=15, DW=32, EXTRACLOCK= 1,
 		parameter	HEXFILE="",
 		parameter [0:0]	OPT_ROM = 1'b0,
-		localparam	AW = LGMEMSZ - 2
+		localparam	AW = LGMEMSZ - $clog2(DW/8)
 		// }}}
 	) (
 		// {{{
@@ -70,9 +70,12 @@ module	memdev #(
 	wire	[(AW-1):0]	w_addr;
 	wire	[(DW/8-1):0]	w_sel;
 
+	// Declare the memory itself
 	reg	[(DW-1):0]	mem	[0:((1<<AW)-1)];
 	// }}}
 
+	// Pre-load the memory
+	// {{{
 	generate if (HEXFILE != 0)
 	begin : PRELOAD_MEMORY
 
@@ -81,25 +84,33 @@ module	memdev #(
 	end endgenerate
 	////////////////////////////////////////////////////////////////////////
 	//
-	// Add a clock cycle to memory accesses if required
+	// Add a clock cycle to memory accesses (if required)
 	// {{{
 	////////////////////////////////////////////////////////////////////////
 	//
 	//
-	generate
-	if (EXTRACLOCK == 0)
-	begin
 
+	generate if (EXTRACLOCK == 0)
+	begin : NO_EXTRA_CLOCK
+		// {{{
 		assign	w_wstb = (i_wb_stb)&&(i_wb_we);
 		assign	w_stb  = i_wb_stb;
 		assign	w_addr = i_wb_addr;
 		assign	w_data = i_wb_data;
 		assign	w_sel  = i_wb_sel;
+		// }}}
+	end else begin : EXTRA_MEM_CLOCK_CYCLE
+		// {{{
+		reg			last_wstb, last_stb;
+		reg	[(AW-1):0]	last_addr;
+		reg	[(DW-1):0]	last_data;
+		reg	[(DW/8-1):0]	last_sel;
 
-	end else begin
-
-		reg		last_wstb, last_stb;
+		initial	last_wstb = 0;
 		always @(posedge i_clk)
+		if (i_reset)
+			last_wstb <= 0;
+		else
 			last_wstb <= (i_wb_stb)&&(i_wb_we);
 
 		initial	last_stb = 1'b0;
@@ -109,9 +120,6 @@ module	memdev #(
 		else
 			last_stb <= (i_wb_stb);
 
-		reg	[(AW-1):0]	last_addr;
-		reg	[(DW-1):0]	last_data;
-		reg	[(DW/8-1):0]	last_sel;
 		always @(posedge i_clk)
 			last_data <= i_wb_data;
 		always @(posedge i_clk)
@@ -124,6 +132,7 @@ module	memdev #(
 		assign	w_addr = last_addr;
 		assign	w_data = last_data;
 		assign	w_sel  = last_sel;
+		// }}}
 	end endgenerate
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -143,17 +152,15 @@ module	memdev #(
 
 	generate if (!OPT_ROM)
 	begin : WRITE_TO_MEMORY
+		// {{{
+		integer	ik;
 
 		always @(posedge i_clk)
+		if (w_wstb)
 		begin
-			if ((w_wstb)&&(w_sel[3]))
-				mem[w_addr][31:24] <= w_data[31:24];
-			if ((w_wstb)&&(w_sel[2]))
-				mem[w_addr][23:16] <= w_data[23:16];
-			if ((w_wstb)&&(w_sel[1]))
-				mem[w_addr][15: 8] <= w_data[15:8];
-			if ((w_wstb)&&(w_sel[0]))
-				mem[w_addr][ 7: 0] <= w_data[7:0];
+			for(ik=0; ik<DW/8; ik=ik+1)
+			if (w_sel[ik])
+				mem[w_addr][ik*8 +: 8] <= w_data[ik*8 +: 8];
 		end
 `ifdef	VERILATOR
 	end else begin : VERILATOR_ROM
@@ -164,6 +171,7 @@ module	memdev #(
 		assign	rom_unused = &{ 1'b0, w_wstb, w_data, w_sel };
 		// Verilator lint_on  UNUSED
 `endif
+		// }}}
 	end endgenerate
 	// }}}
 	////////////////////////////////////////////////////////////////////////
@@ -188,7 +196,7 @@ module	memdev #(
 	// {{{
 	// verilator lint_off UNUSED
 	wire	unused;
-	assign	unused = i_wb_cyc;
+	assign	unused = { 1'b0 };
 	// verilator lint_on UNUSED
 	// }}}
 ////////////////////////////////////////////////////////////////////////////////

@@ -37,7 +37,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -283,7 +283,7 @@ module	hwbfly #(
 		reg			mpy_pipe_v;
 		reg			ce_phase;
 
-		reg	signed	[(CWIDTH+IWIDTH+1)-1:0]	mpy_pipe_out;
+		wire	signed	[(CWIDTH+IWIDTH+1)-1:0]	mpy_pipe_out;
 		reg	signed [IWIDTH+CWIDTH+3-1:0]	longmpy;
 
 		reg	signed	[((IWIDTH+1)+(CWIDTH)-1):0]	rp_one,

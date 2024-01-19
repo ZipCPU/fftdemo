@@ -26,7 +26,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2015-2021, Gisselquist Technology, LLC
+// Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -54,14 +54,16 @@
 module	wbpriarbiter #(
 		// {{{
 		parameter			DW=32, AW=32,
-		//
+		// OPT_ZERO_ON_IDLE
+		// {{{
 		// ZERO_ON_IDLE uses more logic than the alternative.  It should
 		// be useful for reducing power, as these circuits tend to drive
 		// wires all the way across the design, but it may also slow
 		// down the master clock.  I've used it as an option when using
-		// VERILATOR, 'cause zeroing things on idle can make them stand
+		// VER1LATOR, 'cause zeroing things on idle can make them stand
 		// out all the more when staring at wires and dumps and such.
 		parameter	[0:0]		OPT_ZERO_ON_IDLE = 1'b0
+		// }}}
 		// }}}
 	) (
 		// {{{
@@ -73,7 +75,7 @@ module	wbpriarbiter #(
 		input	wire	[(AW-1):0]	i_a_adr,
 		input	wire	[(DW-1):0]	i_a_dat,
 		input	wire	[(DW/8-1):0]	i_a_sel,
-		output	wire			o_a_ack, o_a_stall, o_a_err,
+		output	wire			o_a_stall, o_a_ack, o_a_err,
 		// }}}
 		// Bus B
 		// {{{
@@ -81,18 +83,20 @@ module	wbpriarbiter #(
 		input	wire	[(AW-1):0]	i_b_adr,
 		input	wire	[(DW-1):0]	i_b_dat,
 		input	wire	[(DW/8-1):0]	i_b_sel,
-		output	wire			o_b_ack, o_b_stall, o_b_err,
+		output	wire			o_b_stall, o_b_ack, o_b_err,
 		// }}}
-		// Both buses
+		// Outgoing combined bus
 		// {{{
 		output	wire			o_cyc, o_stb, o_we,
 		output	wire	[(AW-1):0]	o_adr,
 		output	wire	[(DW-1):0]	o_dat,
 		output	wire	[(DW/8-1):0]	o_sel,
-		input	wire			i_ack, i_stall, i_err
+		input	wire			i_stall, i_ack, i_err
 		// }}}
 		// }}}
 	);
+
+	reg	r_a_owner;
 
 	// r_a_owner
 	// {{{
@@ -102,8 +106,6 @@ module	wbpriarbiter #(
 	//	We were just high and the owner no longer wants the bus
 	// WISHBONE Spec recommends no logic between a FF and the o_cyc
 	//	This violates that spec.  (Rec 3.15, p35)
-	reg	r_a_owner;
-
 	initial	r_a_owner = 1'b1;
 	always @(posedge i_clk)
 	if (!i_b_cyc)
@@ -113,6 +115,8 @@ module	wbpriarbiter #(
 		r_a_owner <= 1'b0;
 	// }}}
 
+	// CYC, STB, and WE
+	// {{{
 	// Realistically, if neither master owns the bus, the output is a
 	// don't care.  Thus we trigger off whether or not 'A' owns the bus.
 	// If 'B' owns it all we care is that 'A' does not.  Likewise, if
@@ -122,18 +126,25 @@ module	wbpriarbiter #(
 	assign o_cyc = (r_a_owner) ? i_a_cyc : i_b_cyc;
 	assign o_we  = (r_a_owner) ? i_a_we  : i_b_we;
 	assign o_stb   = (r_a_owner) ? i_a_stb   : i_b_stb;
+	// }}}
+
+	// Everything else
+	// {{{
 	generate if (OPT_ZERO_ON_IDLE)
-	begin
-		assign	o_adr     = (o_stb)?((r_a_owner) ? i_a_adr : i_b_adr):0;
-		assign	o_dat     = (o_stb)?((r_a_owner) ? i_a_dat : i_b_dat):0;
-		assign	o_sel     = (o_stb)?((r_a_owner) ? i_a_sel : i_b_sel):0;
-		assign	o_a_ack   = (o_cyc)&&( r_a_owner) ? i_ack  : 1'b0;
-		assign	o_b_ack   = (o_cyc)&&(!r_a_owner) ? i_ack  : 1'b0;
-		assign	o_a_stall = (o_cyc)&&( r_a_owner) ? i_stall: 1'b1;
-		assign	o_b_stall = (o_cyc)&&(!r_a_owner) ? i_stall: 1'b1;
-		assign	o_a_err   = (o_cyc)&&( r_a_owner) ? i_err  : 1'b0;
-		assign	o_b_err   = (o_cyc)&&(!r_a_owner) ? i_err  : 1'b0;
-	end else begin
+	begin : OPT_LOWPOWER
+		// {{{
+		assign	o_adr     = (o_stb)?((r_a_owner) ? i_a_adr  : i_b_adr):0;
+		assign	o_dat     = (o_stb)?((r_a_owner) ? i_a_dat  : i_b_dat):0;
+		assign	o_sel     = (o_stb)?((r_a_owner) ? i_a_sel  : i_b_sel):0;
+		assign	o_a_ack   = (o_cyc)&&( r_a_owner) ? i_ack   : 1'b0;
+		assign	o_b_ack   = (o_cyc)&&(!r_a_owner) ? i_ack   : 1'b0;
+		assign	o_a_stall = (o_cyc)&&( r_a_owner) ? i_stall : 1'b1;
+		assign	o_b_stall = (o_cyc)&&(!r_a_owner) ? i_stall : 1'b1;
+		assign	o_a_err   = (o_cyc)&&( r_a_owner) ? i_err : 1'b0;
+		assign	o_b_err   = (o_cyc)&&(!r_a_owner) ? i_err : 1'b0;
+		// }}}
+	end else begin : OPT_LOWLOGIC
+		// {{{
 		assign o_adr   = (r_a_owner) ? i_a_adr   : i_b_adr;
 		assign o_dat   = (r_a_owner) ? i_a_dat   : i_b_dat;
 		assign o_sel   = (r_a_owner) ? i_a_sel   : i_b_sel;
@@ -153,7 +164,10 @@ module	wbpriarbiter #(
 		//
 		assign	o_a_err = ( r_a_owner) ? i_err : 1'b0;
 		assign	o_b_err = (!r_a_owner) ? i_err : 1'b0;
+		// }}}
 	end endgenerate
+	// }}}
+////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -163,11 +177,10 @@ module	wbpriarbiter #(
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 `ifdef	FORMAL
-
 `ifdef	WBPRIARBITER
-`define	`ASSUME	assume
+`define	ASSUME	assume
 `else
-`define	`ASSUME	assert
+`define	ASSUME	assert
 `endif
 
 	reg	f_past_valid;
@@ -255,12 +268,14 @@ module	wbpriarbiter #(
 	) f_wbb(
 		// {{{
 		i_clk, f_reset,
-			i_b_cyc, i_b_stb, i_b_we, i_b_adr, i_b_dat, i_b_sel,
-			o_b_ack, o_b_stall, 32'h0, o_b_err,
-			f_b_nreqs, f_b_nacks, f_b_outstanding
+		i_b_cyc, i_b_stb, i_b_we, i_b_adr, i_b_dat, i_b_sel,
+		o_b_ack, o_b_stall, 32'h0, o_b_err,
+		f_b_nreqs, f_b_nacks, f_b_outstanding
 		// }}}
 	);
 
+	// Induction, relate number of requests and acks to r_a_owner
+	// {{{
 	always @(posedge i_clk)
 	if (r_a_owner)
 	begin
@@ -272,6 +287,7 @@ module	wbpriarbiter #(
 		assert(f_a_nacks == 0);
 		assert(f_b_outstanding == f_outstanding);
 	end
+	// }}}
 
 	always @(posedge i_clk)
 	if ((r_a_owner)&&(i_b_cyc))
@@ -280,7 +296,6 @@ module	wbpriarbiter #(
 	always @(posedge i_clk)
 	if ((r_a_owner)&&(i_a_cyc))
 		assume(i_a_stb);
-
 `endif
 // }}}
 endmodule
