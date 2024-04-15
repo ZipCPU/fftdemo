@@ -12,6 +12,7 @@ smtbmc
 read -formal tmdstest.v
 read -formal tmdsencode.v
 read -formal tmdsdecode.v
+proc -norom
 prep -top tmdstest
 
 [files]

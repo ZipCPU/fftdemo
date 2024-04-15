@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	fftmain.v
+// Filename:	rtl/fft/fftmain.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

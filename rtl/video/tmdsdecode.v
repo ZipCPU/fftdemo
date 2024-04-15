@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	tmdsdecode.v
+// Filename:	rtl/video/tmdsdecode.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

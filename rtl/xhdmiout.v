@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	xhdmiout.v
+// Filename:	rtl/xhdmiout.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
@@ -17,7 +17,7 @@
 // Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //
@@ -34,7 +34,6 @@
 // License:	GPL, v3, as defined and found on www.gnu.org,
 // {{{
 //		http://www.gnu.org/licenses/gpl.html
-//
 //
 ////////////////////////////////////////////////////////////////////////////////
 //

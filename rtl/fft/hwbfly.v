@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	hwbfly.v
+// Filename:	rtl/fft/hwbfly.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

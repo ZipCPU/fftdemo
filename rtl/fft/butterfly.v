@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	butterfly.v
+// Filename:	rtl/fft/butterfly.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

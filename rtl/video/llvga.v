@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	llvga.v
+// Filename:	rtl/video/llvga.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2017-2024, Gisselquist Technology, LLC
+// Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -34,7 +34,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 //
-//
 `default_nettype	none
 // }}}
 module	llvga #(
@@ -54,11 +53,13 @@ module	llvga #(
 		// External connections
 		input	wire	[BPP-1:0]	i_rgb_pix,
 		// Video mode information
+		// {{{
 		input	wire	[HW-1:0]		i_hm_width, i_hm_porch,
 							i_hm_synch, i_hm_raw,
 		input	wire	[VW-1:0]		i_vm_height, i_vm_porch,
 							i_vm_synch, i_vm_raw,
-		// Pixel stream control
+		// }}}
+		// Outgoing signal generation
 		// {{{
 		output	reg			o_rd, o_newline, o_newframe,
 		// }}}

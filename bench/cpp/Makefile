@@ -18,10 +18,10 @@
 ##
 ################################################################################
 ## }}}
-## Copyright (C) 2018-2024, Gisselquist Technology, LLC
+## Copyright (C) 2015-2024, Gisselquist Technology, LLC
 ## {{{
 ## This program is free software (firmware): you can redistribute it and/or
-## modify it under the terms of  the GNU General Public License as published
+## modify it under the terms of the GNU General Public License as published
 ## by the Free Software Foundation, either version 3 of the License, or (at
 ## your option) any later version.
 ##
@@ -68,7 +68,7 @@ CFLAGS  :=  $(GFXFLAGS)
 SIMSOURCES:= vgasim.cpp micnco.cpp hdmisim.cpp
 SIMOBJECTS:= $(addprefix $(OBJDIR)/,$(subst .cpp,.o,$(SIMSOURCES)))
 SIMHEADERS:= $(foreach header,$(subst .cpp,.h,$(SIMSOURCES)),$(wildcard $(header)))
-VOBJS   := $(OBJDIR)/verilated_vcd_c.o $(OBJDIR)/verilated.o
+VOBJS   := $(OBJDIR)/verilated_vcd_c.o $(OBJDIR)/verilated.o $(OBJDIR)/verilated_threads.o
 all:	main_tb ddr_tb hexf
 
 SOURCES := main_tb.cpp vgasim.cpp
@@ -100,11 +100,11 @@ $(OBJDIR)/%.o: $(VINCD)/%.cpp
 #
 MAINOBJS := $(OBJDIR)/main_tb.o
 main_tb: $(MAINOBJS) $(SIMOBJECTS) $(VOBJS) $(VOBJDR)/Vmain__ALL.a
-	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vmain__ALL.a $(GFXLIBS) -o $@
+	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vmain__ALL.a $(GFXLIBS) -lpthread -o $@
 
 DDROBJS := $(OBJDIR)/ddr_tb.o $(OBJDIR)/memsim.o
 ddr_tb: $(DDROBJS) $(SIMOBJECTS) $(VOBJS) $(VOBJDR)/Vhdmiddr__ALL.a
-	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vhdmiddr__ALL.a $(GFXLIBS) -lz -o $@
+	$(CXX) $(GFXFLAGS) $^ $(VOBJDR)/Vhdmiddr__ALL.a $(GFXLIBS) -lz -lpthread -o $@
 
 HEXF := cmem_8.hex cmem_16.hex cmem_32.hex cmem_64.hex cmem_128.hex cmem_256.hex
 HEXF += cmem_512.hex cmem_1024.hex hanning.hex subfildown.hex

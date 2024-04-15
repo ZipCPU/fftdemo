@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	memsim.cpp
+// Filename:	bench/cpp/memsim.cpp
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

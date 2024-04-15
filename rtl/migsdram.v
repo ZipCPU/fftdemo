@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	migsdram.v
+// Filename:	rtl/migsdram.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

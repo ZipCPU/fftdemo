@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	atxfifo.v
+// Filename:	rtl/video/atxfifo.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
@@ -28,13 +28,10 @@
 //
 // The formal properties within this project, contained between the
 // `ifdef FORMAL line and its corresponding `endif, are owned by Gisselquist
-// Technology, LLC, and Copyrighted as such.  Hence, the following copyright
-// statement regarding these properties:
-// }}}
-// Copyright (C) 2018-2024, Gisselquist Technology, LLC
+// Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
-// These properties are free software (firmware): you can redistribute it and/or
-// modify it under the terms of  the GNU General Public License as published
+// This program is free software (firmware): you can redistribute it and/or
+// modify it under the terms of the GNU General Public License as published
 // by the Free Software Foundation, either version 3 of the License, or (at
 // your option) any later version.
 //

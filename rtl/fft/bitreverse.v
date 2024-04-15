@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	bitreverse.v
+// Filename:	rtl/fft/bitreverse.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

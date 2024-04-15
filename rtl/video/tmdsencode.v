@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	tmdsencode.v
+// Filename:	rtl/video/tmdsencode.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
@@ -164,8 +164,8 @@ module	tmdsencode #(
 	begin
 		ones_counter = 0;
 		for(k=0; k<8; k=k+1)
-			if (i_data[k])
-				ones_counter = ones_counter + 1;
+		if (i_data[k])
+			ones_counter = ones_counter + 1;
 		ones = ones_counter;
 	end
 
@@ -173,8 +173,8 @@ module	tmdsencode #(
 	begin
 		qm_ones_counter = 0;
 		for(k=0; k<8; k=k+1)
-			if (q_m[k])
-				qm_ones_counter = qm_ones_counter + 1;
+		if (q_m[k])
+			qm_ones_counter = qm_ones_counter + 1;
 		qm_ones = ones_counter;
 	end
 

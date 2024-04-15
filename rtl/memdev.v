@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	memdev.v
+// Filename:	rtl/memdev.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

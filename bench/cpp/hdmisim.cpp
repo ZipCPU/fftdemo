@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	hdmisim.cpp
+// Filename:	bench/cpp/hdmisim.cpp
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
@@ -18,7 +18,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2018-2024, Gisselquist Technology, LLC
+// Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -92,6 +92,7 @@ void	HDMISIM::get_preferred_height_for_width_vfunc(int w,
 #define	DATA_ISLAND	4
 
 int	HDMISIM::bitreverse(int val) {
+	// {{{
 	int	result = 0, tmp = val;
 
 	for(int k=0; k<10; k++) {
@@ -102,14 +103,18 @@ int	HDMISIM::bitreverse(int val) {
 
 	return result;
 }
+// }}}
 
 bool	HDMISIM::isguard(int val) {
+	// {{{
 	if ((val == 0x2cc)||(val == 0x133))
 		return true;
 	return false;
 }
+// }}}
 
 int	HDMISIM::ctldata(int val) {
+	// {{{
 	switch(val) {
 	case 0x354:	return 0;
 	case 0x0ab:	return 1;
@@ -118,8 +123,10 @@ int	HDMISIM::ctldata(int val) {
 	default:	return -1;
 	}
 }
+// }}}
 
 int	HDMISIM::pktdata(int val) {
+	// {{{
 	switch(val) {
 	case 0x29c:	return 0;
 	case 0x263:	return 1;
@@ -143,8 +150,10 @@ int	HDMISIM::pktdata(int val) {
 	default:	return -1;
 	}
 }
+// }}}
 
 int	HDMISIM::pixeldata(int val) {
+	// {{{
 	int	midp, result = 0;
 
 	midp = val & 0x3ff;
@@ -160,8 +169,10 @@ int	HDMISIM::pixeldata(int val) {
 	result = bitreverse(midp);
 	return result;
 }
+// }}}
 
 void	HDMISIM::operator()(const int blu, const int grn, const int red) {
+	// {{{
 	int	brblu, brgrn, brred, r=0, g=0, b=0, hsync, vsync, s;
 	int	xv, yv;
 
@@ -170,16 +181,23 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 	brred = bitreverse(red);
 	hsync = vsync = 0;
 
-	bool	video_guard, video_preamble, data_preamble, data_guard;
+	bool	video_guard, data_guard;
+	// bool	video_preamble, data_preamble;
 
 	video_guard = ((isguard(brblu))&&(isguard(brgrn))&&(isguard(brred)));
+	if (brblu != brred)
+		video_guard = false;
+	else if (brblu == brgrn)
+		video_guard = false;
 
+	/*
 	video_preamble = ((ctldata(brblu)==0)
 				&&(ctldata(brgrn)==1)
 				&&(ctldata(brred)==0));
 
 	data_preamble = ((ctldata(brgrn)==1)
 				&&(ctldata(brred)==1));
+	*/
 
 	data_guard = (((ctldata(brblu)&~3)==0x0c)
 			&&(isguard(brgrn))&&(isguard(brred)));
@@ -222,7 +240,7 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 	} else if (m_state == DATA_GUARD) {
 		if (!data_guard) {
 			if (m_debug) printf("State -> DATA_ISLAND, %d\n", m_state_counter);
-			m_state == DATA_ISLAND;
+			m_state = DATA_ISLAND;
 			m_state_counter = 0;
 		} else
 			m_state_counter++;
@@ -256,7 +274,7 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 		m_out_of_sync = true;
 	}
 
-	if ((m_debug)&&(m_out_of_sync))
+	if (0 && (m_debug)&&(m_out_of_sync))
 		printf("S(#%d/%4d):HDMISIM--TICK(%d,%d,%6d,%6d)\n", m_state,
 				m_state_counter,
 				vsync, hsync, m_vsync_count, m_hsync_count);
@@ -296,7 +314,7 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 					m_vsync_count,
 					m_mode.raw_width() * m_mode.sync_lines()-1);
 			} else if (m_debug)
-				printf("\nVGA-FRAME\n");
+				printf("\nHDMI-FRAME\n");
 
 			gbl_nframes++;
 
@@ -336,16 +354,16 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 			// On the first hsync pulse, we start counting pixels.
 			// There should be exactly raw_width() pixels per line.
 			if ((m_hsync_count != m_mode.raw_width()-1)&&(!m_out_of_sync)) {
-				m_hsync_count = 0;
 				printf("H-RESYNC\n");
 				printf("\n%30s (%d,%d)\n","H-RESYNC (Wrong #)", m_hsync_count, m_mode.raw_width());
+				m_hsync_count = 0;
 				m_out_of_sync = true;
 			}
 
 			m_hsync_count = 0;
 		} else if (hsync) {
-			// During the horizontal sync, we expect m_mode.sync_pixels()
-			// pixels with the hsync low.
+			// During the horizontal sync, we expect
+			// m_mode.sync_pixels() pixels with the hsync low.
 			if (m_hsync_count < m_mode.sync_pixels() - 1)
 				m_hsync_count++;
 			else {
@@ -370,23 +388,48 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 		// (sync_pixels)...(hback_porch-1)	Sync is false, no data
 		// (hback_porch ... hback_porch+width-1)
 		// (raw_width-front_porch ... raw_width)
-		assert( m_vsync_count <   m_mode.raw_height()*m_mode.raw_width());
-		assert((m_hsync_count <   m_mode.sync_pixels())||(!hsync));
-		assert( m_hsync_count <   m_mode.raw_width());
+		bool	error = false;
 
+		if (m_vsync_count >= m_mode.raw_height()*m_mode.raw_width())
+			error = true;
+		if (hsync && (m_hsync_count >= m_mode.sync_pixels()))
+			error = true;
+		if ( m_hsync_count >= m_mode.raw_width())
+			error = true;
+
+		if (error) {
+			if ( m_hsync_count >=  m_mode.raw_width())
+				printf("3 - ");
+			printf("OUT-OF-BOUNDS sync count: %d, %d [%d, %d, %dx%d=%d]\n",
+				m_hsync_count, m_vsync_count,
+				m_mode.raw_width(),
+				m_mode.sync_pixels(),
+				m_mode.raw_height(),
+				m_mode.raw_width(),
+				m_mode.raw_height() * m_mode.raw_width());
+			m_pixel_clock_count = 0;
+			m_out_of_sync = true;
+			m_hsync_count = 0;
+			m_vsync_count = 0;
+
+
+			printf("\t%d x %d (within %d x %d)\n",
+				m_mode.width(), m_mode.height(),
+				m_mode.raw_width(), m_mode.raw_height());
+		}
 
 		yv = (m_vsync_count-m_hsync_count)/m_mode.raw_width();
 		yv -= m_mode.vback_porch() + m_mode.sync_lines();
 		xv = (m_hsync_count) -(m_mode.sync_pixels() + m_mode.hback_porch());
 
-		if ((xv >= 0)&&(yv >= 0) // only if in range
+		if (!error && (xv >= 0)&&(yv >= 0) // only if in range
 				&&(xv < m_mode.width())&&(yv < m_mode.height())
 				&&(!m_out_of_sync)) {
 			int	clr, msk = (1<<BITS_PER_COLOR)-1;
 			clr = ((r&msk)<<(24-BITS_PER_COLOR))
 					|((g&msk)<<(16-BITS_PER_COLOR))
 					|((b & msk)<<(8-BITS_PER_COLOR));
-			if (m_data->m_img[yv][xv] != clr) {
+			if (m_data->m_img[yv][xv] != (unsigned)clr) {
 				m_data->m_img[yv][xv] = clr;
 
 				// printf("\nIMG[%03d][%03d] = %03x\n",
@@ -425,32 +468,36 @@ void	HDMISIM::operator()(const int blu, const int grn, const int red) {
 	m_last_g     = g;
 	m_last_b     = b;
 }
+// }}}
 
 bool	HDMISIM::on_draw(CONTEXT &gc) {
+	// {{{
 	// printf("ON-DRAW\n");
 	gc->save();
-	// gc->rectangle(0,0,VGA_WIDTH, VGA_HEIGHT);
-	// gc->clip();
 	gc->set_source(m_pix, 0, 0);
 	gc->paint();
 	gc->restore();
 
 	return true;
 }
+// }}}
 
 void	HDMIWIN::init(void) {
-
+	// {{{
 	m_hdmisim->set_size_request(SIMWIN::width(),SIMWIN::height());
 	set_border_width(0);
 	add(*m_hdmisim);
 	show_all();
 	Gtk::Window::set_title(Glib::ustring("HDMI Simulator"));
 };
+// }}}
 
 HDMIWIN::HDMIWIN(void) : SIMWIN(640,480) {
+	//  {{{
 	m_hdmisim = new HDMISIM(640, 480);
 	init();
 }
+// }}}
 
 HDMIWIN::HDMIWIN(const int w, const int h) : SIMWIN(w,h) {
 	m_hdmisim = new HDMISIM(w, h);

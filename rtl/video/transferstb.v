@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	transferstb.v
+// Filename:	rtl/video/transferstb.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

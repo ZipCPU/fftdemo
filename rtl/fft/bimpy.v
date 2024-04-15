@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	./bimpy.v
+// Filename:	rtl/fft/bimpy.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

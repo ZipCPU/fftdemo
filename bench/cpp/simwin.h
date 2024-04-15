@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	simwin.h
+// Filename:	bench/cpp/simwin.h
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2018-2024, Gisselquist Technology, LLC
+// Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -48,7 +48,7 @@ protected:
 
 public:
 	SIMWIN(void) : m_vmode(640,480) {};
-	SIMWIN(const int w, const int h) : m_vmode(640,480) {};
+	SIMWIN(const int w, const int h) : m_vmode(w,h) {};
 	SIMWIN(const char *h, const char *v) : m_vmode(h,v) {};
 
 	virtual	bool syncd(void)  const= 0;

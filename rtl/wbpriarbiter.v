@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	wbpriarbiter.v
+// Filename:	rtl/wbpriarbiter.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

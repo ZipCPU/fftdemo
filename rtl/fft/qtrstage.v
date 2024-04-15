@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename:	qtrstage.v
+// Filename:	rtl/fft/qtrstage.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //

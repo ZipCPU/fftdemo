@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Filename: 	imgfifo.v
+// Filename:	rtl/video/imgfifo.v
 // {{{
 // Project:	FFT-DEMO, a verilator-based spectrogram display project
 //
@@ -11,7 +11,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 // }}}
-// Copyright (C) 2017-2024, Gisselquist Technology, LLC
+// Copyright (C) 2015-2024, Gisselquist Technology, LLC
 // {{{
 // This program is free software (firmware): you can redistribute it and/or
 // modify it under the terms of the GNU General Public License as published
@@ -85,7 +85,7 @@ module	imgfifo #(
 	wire	[FAW:0]	fifo_availability, fifo_fill;
 
 	reg	[2:0]	wb_reset_pipe;
-	wire	wb_reset, pix_reset;
+	wire		wb_reset, pix_reset;
 	reg	[2:0]	pix_reset_pipe;
 	reg	[(FAW-1):0]	stb_count;
 	reg	[(FAW-1):0]	ack_count;
@@ -121,20 +121,27 @@ module	imgfifo #(
 	assign	pix_reset = pix_reset_pipe[2];
 	// }}}
 
-	// o_wb_cyc, o_wb_stb, o_wb_addr
+	// Wishbone request: CYC, STB, ADDR
 	// {{{
+	// We only request a line at a time, and then wait until there's room
+	// for the next line in the FIFO before requesting it.  Ideally, any
+	// supporting FIFO should have room for at least two lines within it.
 	initial	o_wb_cyc  = 1'b0;
 	initial	o_wb_stb  = 1'b0;
 	initial	o_wb_addr = 0;
 	always @(posedge  i_clk)
 	if ((wb_reset)||(i_wb_err))
 	begin
+		// {{{
 		o_wb_cyc <= 1'b0;
 		o_wb_stb <= 1'b0;
 		o_wb_addr <= i_baseaddr;
+		// }}}
 	end else if (o_wb_cyc)
 	begin
+		// {{{
 		if (!i_wb_stall)
+			// Stop requesting at the end of the line
 			o_wb_stb  <= (o_wb_stb)&&(!last_stb);
 		if ((o_wb_stb)&&(!i_wb_stall))
 		begin
@@ -145,13 +152,14 @@ module	imgfifo #(
 				o_wb_addr <= o_wb_addr + 1'b1;
 		end
 		if ((i_wb_ack)&&(last_ack))
+			// On the last acknowledgment, close up shop
 			o_wb_cyc <= 1'b0;
-	end else begin
-		if (room_for_another_line_in_fifo)
-		begin
-			o_wb_cyc <= 1'b1;
-			o_wb_stb <= 1'b1;
-		end
+		// }}}
+	end else if (room_for_another_line_in_fifo)
+	begin
+		// Start reading a new line
+		o_wb_cyc <= 1'b1;
+		o_wb_stb <= 1'b1;
 	end
 	// }}}
 
@@ -204,7 +212,7 @@ module	imgfifo #(
 	initial	vpos = 0;
 	initial	end_of_frame = 0;
 	always @(posedge i_clk)
-	if ((wb_reset))
+	if (wb_reset)
 	begin
 		vpos <= 0;
 		end_of_frame <= (i_nlines == 0);
@@ -218,7 +226,7 @@ module	imgfifo #(
 
 	assign	fifo_availability = ({1'b1,{(FAW){1'b0}}} - fifo_fill);
 
-	// room_for_another_line_in_fifo
+	// room_for_another_line_in_fifo?
 	// {{{
 	initial	room_for_another_line_in_fifo = 1'b0;
 	always @(posedge i_clk)
